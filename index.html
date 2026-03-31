@@ -1,0 +1,1647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Code Compiler</title>
+<!-- 
+  ╔══════════════════════════════════════════════╗
+  ║  Open Source Code Compiler                   ║
+  ║  Powered by Piston API (self-hosted)         ║
+  ║  GitHub: github.com/YOUR_USERNAME/YOUR_REPO  ║
+  ╚══════════════════════════════════════════════╝
+
+  SETUP:
+  1. Host your own Piston API: https://github.com/engineer-man/piston
+  2. Replace YOUR_PISTON_API_URL below with your server URL
+  3. Open index.html in a browser — done!
+-->
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Fira+Code:wght@400;500&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07111f;
+  --surface:#0d1b33;
+  --surface2:#122040;
+  --surface3:#18294e;
+  --border:#1e3460;
+  --border-l:#2a4878;
+
+  --accent:#f0b429;
+  --accent-l:#fac84a;
+  --accent-d:#c8921a;
+  --accent-glow:rgba(240,180,41,.18);
+
+  --cyan:#38bdf8;
+  --green:#4ade80;
+  --red:#f87171;
+  --purple:#c084fc;
+  --orange:#fb923c;
+  --blue:#60a5fa;
+
+  --white:#eef2ff;
+  --muted:#5a7a9e;
+  --muted-l:#7a9bbf;
+
+  --font:'Nunito',sans-serif;
+  --mono:'Fira Code',monospace;
+  --radius:8px;
+  --header-h:54px;
+}
+
+body{font-family:var(--font);background:var(--bg);color:var(--white);height:100vh;overflow:hidden;}
+
+body::before{
+  content:'';
+  position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 65% 45% at 8% 4%, rgba(240,180,41,.07) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 40% at 92% 92%, rgba(56,189,248,.06) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(18,32,64,.8) 0%, transparent 70%);
+}
+
+header{
+  position:fixed;top:0;left:0;right:0;z-index:300;
+  display:flex;align-items:center;gap:.75rem;padding:0 1rem;height:var(--header-h);
+  background:rgba(7,17,31,.97);
+  border-bottom:2px solid var(--accent-d);
+  backdrop-filter:blur(16px);
+  box-shadow:0 2px 24px rgba(0,0,0,.5), 0 1px 0 rgba(240,180,41,.12);
+}
+.logo{display:flex;align-items:center;gap:.55rem;font-weight:800;font-size:.88rem;letter-spacing:.01em;flex-shrink:0;white-space:nowrap;font-family:'Rajdhani',sans-serif;}
+.logo-icon{width:32px;height:32px;border-radius:7px;background:linear-gradient(135deg,var(--accent-d),var(--accent));display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 12px rgba(240,180,41,.3);font-size:1.1rem;}
+.logo-name{background:linear-gradient(90deg,var(--accent),var(--accent-l));-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:1rem;letter-spacing:.02em;}
+
+.header-mid{flex:1;display:flex;justify-content:center;align-items:center;gap:.35rem;overflow:hidden;}
+.hc-pill{
+  padding:.24rem .7rem;border-radius:20px;font-size:.68rem;font-weight:700;
+  border:1px solid var(--border-l);background:var(--surface2);color:var(--muted-l);
+  cursor:pointer;transition:all .18s;white-space:nowrap;flex-shrink:0;font-family:var(--font);
+  letter-spacing:.03em;
+}
+.hc-pill:hover{border-color:var(--accent-d);color:var(--accent);background:var(--accent-glow);}
+.hc-pill.active{border-color:var(--accent);color:var(--accent);background:var(--accent-glow);box-shadow:0 0 10px rgba(240,180,41,.2);}
+.hc-pill.iot-pill.active{border-color:var(--orange);color:var(--orange);background:rgba(251,146,60,.15);}
+
+.header-right{display:flex;align-items:center;gap:.6rem;flex-shrink:0;}
+.usage-pill{display:flex;align-items:center;gap:.45rem;background:var(--surface2);border:1px solid var(--border-l);border-radius:20px;padding:.25rem .75rem;font-size:.7rem;}
+.usage-bar-wrap{width:60px;height:4px;background:var(--surface3);border-radius:3px;overflow:hidden;}
+.usage-bar{height:100%;border-radius:3px;background:var(--green);transition:width .4s,background .4s;}
+.api-status{display:flex;align-items:center;gap:.35rem;font-size:.68rem;cursor:pointer;}
+.dot-live{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 2s infinite;flex-shrink:0;}
+.dot-checking{background:var(--accent)!important;animation:blink .6s infinite!important;}
+.dot-err{background:var(--red)!important;animation:none!important;}
+.icon-btn{
+  background:none;border:1px solid var(--border-l);color:var(--muted-l);border-radius:6px;
+  padding:.28rem .55rem;font-size:.8rem;cursor:pointer;transition:all .15s;
+}
+.icon-btn:hover{color:var(--accent);border-color:var(--accent-d);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+.app{position:fixed;top:var(--header-h);left:0;right:0;bottom:0;display:flex;z-index:1;}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:250;backdrop-filter:blur(3px);}
+.sidebar-overlay.open{display:block;}
+
+.sidebar{
+  width:248px;flex-shrink:0;
+  background:rgba(13,27,51,.97);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;
+  transition:width .25s,transform .28s;
+}
+.sidebar.collapsed{width:0;overflow:hidden;}
+.sidebar::-webkit-scrollbar{width:3px;}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border);}
+
+.sb-section{padding:.8rem;border-bottom:1px solid rgba(30,52,96,.6);}
+.sb-label{
+  font-size:.58rem;font-weight:800;letter-spacing:.15em;color:var(--accent-d);
+  text-transform:uppercase;margin-bottom:.55rem;display:flex;align-items:center;justify-content:space-between;
+  font-family:'Rajdhani',sans-serif;
+}
+.sb-chip{background:var(--accent);color:#07111f;border-radius:10px;padding:.03rem .4rem;font-size:.54rem;font-weight:800;}
+.sb-chip.orange{background:var(--orange);color:#07111f;}
+
+.lang-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.28rem;}
+.lang-btn{
+  display:flex;flex-direction:column;align-items:center;gap:.15rem;padding:.4rem .2rem;
+  background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+  color:var(--muted-l);font-family:var(--font);font-size:.58rem;font-weight:700;
+  cursor:pointer;transition:all .15s;text-align:center;position:relative;
+}
+.lang-btn:hover{border-color:var(--accent-d);color:var(--accent);}
+.lang-btn.active{background:var(--accent-glow);border-color:var(--accent);color:var(--accent);}
+.lang-btn.iot-active{background:rgba(251,146,60,.18)!important;border-color:var(--orange)!important;color:var(--orange)!important;}
+.lang-btn.unavailable{opacity:.35;cursor:not-allowed;border-style:dashed;}
+.lang-btn.unavailable::after{content:'✗';position:absolute;top:2px;right:3px;font-size:.5rem;color:var(--red);}
+.lang-emoji{font-size:.95rem;line-height:1;}
+.lang-ver{position:absolute;bottom:2px;right:3px;font-size:.45rem;color:var(--muted);font-family:var(--mono);}
+
+.mode-toggle{display:flex;gap:.28rem;}
+.mode-btn{
+  flex:1;padding:.38rem .25rem;border-radius:6px;font-family:var(--font);
+  font-size:.63rem;font-weight:700;border:1px solid var(--border);background:var(--surface2);
+  color:var(--muted-l);cursor:pointer;transition:all .15s;text-align:center;white-space:nowrap;
+}
+.mode-btn:hover{color:var(--accent);border-color:var(--accent-d);}
+.mode-btn.active{background:var(--accent-glow);border-color:var(--accent);color:var(--accent);}
+
+.ex-list{display:flex;flex-direction:column;gap:.25rem;}
+.ex-item{
+  display:flex;align-items:center;gap:.45rem;padding:.44rem .55rem;border-radius:6px;
+  cursor:pointer;transition:all .15s;border:1px solid transparent;
+}
+.ex-item:hover{background:var(--surface2);border-color:var(--border-l);}
+.ex-item.active{background:var(--accent-glow);border-color:rgba(240,180,41,.45);}
+.ex-item.iot-active{background:rgba(251,146,60,.1)!important;border-color:rgba(251,146,60,.4)!important;}
+.ex-item.solved{background:rgba(74,222,128,.04);}
+.ex-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.diff-e{background:var(--green)}.diff-m{background:var(--accent)}.diff-h{background:var(--red)}.diff-x{background:var(--purple)}.diff-iot{background:var(--orange)}
+.ex-info{flex:1;min-width:0;}
+.ex-name{font-size:.7rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ex-meta{font-size:.59rem;color:var(--muted-l);margin-top:1px;}
+.ex-badge{font-size:.78rem;flex-shrink:0;}
+
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:.32rem;}
+.stat-c{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.48rem;text-align:center;}
+.stat-n{font-size:1.05rem;font-weight:800;color:var(--accent);line-height:1;font-family:'Rajdhani',sans-serif;}
+.stat-l{font-size:.55rem;color:var(--muted-l);margin-top:2px;text-transform:uppercase;letter-spacing:.05em;}
+.streak-bar{display:flex;gap:.22rem;margin-top:.5rem;}
+.streak-day{flex:1;height:5px;border-radius:3px;background:var(--surface3);}
+.streak-day.done{background:var(--accent-d);}
+.streak-day.today{background:var(--accent);animation:pulse-b .9s infinite;}
+@keyframes pulse-b{0%,100%{opacity:1}50%{opacity:.45}}
+
+.api-info-box{margin-top:.55rem;padding:.45rem .55rem;background:rgba(240,180,41,.06);border:1px solid rgba(240,180,41,.18);border-radius:6px;}
+.api-info-box-t{font-size:.58rem;color:var(--accent);font-weight:700;margin-bottom:.18rem;}
+.api-info-box-d{font-size:.58rem;color:var(--muted-l);line-height:1.5;}
+
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+
+.prob-bar{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:.6rem 1.1rem;display:flex;align-items:flex-start;gap:.9rem;flex-wrap:nowrap;
+  border-top:2px solid transparent;
+  background-image:linear-gradient(var(--surface),var(--surface)), linear-gradient(90deg,var(--accent-d),transparent 60%);
+  background-origin:border-box;background-clip:padding-box,border-box;
+}
+.prob-bar>div:first-child{flex:1 1 0;min-width:0;overflow:hidden;}
+.prob-title{font-size:.92rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Rajdhani',sans-serif;letter-spacing:.03em;color:var(--white);}
+.prob-desc{font-size:.7rem;color:var(--muted-l);margin-top:3px;line-height:1.55;max-width:560px;}
+.prob-tags{display:flex;gap:.28rem;margin-top:.38rem;flex-wrap:wrap;}
+.tag{padding:.09rem .38rem;border-radius:3px;font-size:.57rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;}
+.t-easy{background:rgba(74,222,128,.1);color:var(--green);}
+.t-med{background:rgba(240,180,41,.12);color:var(--accent);}
+.t-hard{background:rgba(248,113,113,.1);color:var(--red);}
+.t-iot{background:rgba(251,146,60,.12);color:var(--orange);}
+.t-lang{background:rgba(240,180,41,.1);color:var(--accent-l);}
+.t-topic{background:rgba(56,189,248,.08);color:var(--cyan);}
+.prob-actions{margin-left:auto;display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;gap:.38rem;flex-shrink:0;align-self:flex-start;}
+
+.btn{padding:.33rem .85rem;border-radius:6px;font-family:var(--font);font-size:.73rem;font-weight:700;cursor:pointer;transition:all .15s;border:none;white-space:nowrap;}
+.btn-ghost{background:var(--surface2);border:1px solid var(--border-l);color:var(--muted-l);}
+.btn-ghost:hover{border-color:var(--accent-d);color:var(--accent);}
+.btn-hint{background:rgba(240,180,41,.1);border:1px solid rgba(240,180,41,.35);color:var(--accent);}
+.btn-hint:hover{background:rgba(240,180,41,.2);}
+.btn-run{
+  background:linear-gradient(135deg,var(--accent-d),var(--accent));
+  color:#07111f;display:flex;align-items:center;gap:.38rem;
+  box-shadow:0 2px 12px rgba(240,180,41,.25);
+}
+.btn-run:hover:not(:disabled){
+  background:linear-gradient(135deg,var(--accent),var(--accent-l));
+  box-shadow:0 0 20px rgba(240,180,41,.45);transform:translateY(-1px);
+}
+.btn-run:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.btn-run.iot{background:linear-gradient(135deg,#c2410c,var(--orange))!important;color:#fff!important;}
+.btn-run.iot:hover:not(:disabled){box-shadow:0 0 16px rgba(251,146,60,.45)!important;}
+.btn-submit{background:linear-gradient(135deg,#14532d,var(--green));color:#07111f;font-weight:800;}
+.btn-submit:hover:not(:disabled){box-shadow:0 0 16px rgba(74,222,128,.3);transform:translateY(-1px);}
+.btn-submit:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+
+.timer-bar{display:none;align-items:center;gap:.6rem;padding:.35rem 1.1rem;background:rgba(240,180,41,.06);border-bottom:1px solid rgba(240,180,41,.25);font-size:.7rem;flex-shrink:0;}
+.timer-bar.on{display:flex;}
+.timer-clock{font-family:var(--mono);font-size:.82rem;font-weight:700;min-width:44px;color:var(--green);}
+.timer-clock.warn{color:var(--accent);}.timer-clock.danger{color:var(--red);animation:vblink .6s infinite;}
+.timer-prog{flex:1;height:4px;background:var(--surface3);border-radius:3px;overflow:hidden;}
+.timer-fill{height:100%;background:var(--accent);border-radius:3px;transition:width 1s linear,background .4s;}
+@keyframes vblink{0%,100%{opacity:1}50%{opacity:.4}}
+
+.ff-notice{background:rgba(56,189,248,.06);border-bottom:1px solid rgba(56,189,248,.15);padding:.42rem 1rem;display:none;align-items:center;gap:.45rem;flex-shrink:0;font-size:.68rem;color:var(--cyan);}
+.iot-notice{background:rgba(251,146,60,.07);border-bottom:1px solid rgba(251,146,60,.2);padding:.5rem 1rem;display:none;align-items:center;gap:.6rem;flex-shrink:0;font-size:.7rem;color:var(--orange);}
+.iot-notice-icon{font-size:1.1rem;}
+
+.editor-output{flex:1;display:grid;grid-template-columns:1fr 1fr;overflow:hidden;min-height:0;}
+.editor-pane{display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden;}
+
+.pane-header{
+  display:flex;align-items:center;gap:.45rem;padding:.38rem .85rem;
+  background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.pane-label{font-size:.62rem;font-weight:800;letter-spacing:.12em;color:var(--accent-d);text-transform:uppercase;font-family:'Rajdhani',sans-serif;}
+.traffic{display:flex;gap:5px;margin-right:.2rem;}
+.tl{width:10px;height:10px;border-radius:50%;}
+.tl-r{background:#ff5f57;}.tl-y{background:#ffbd2e;}.tl-g{background:#28c840;}
+.editor-meta{margin-left:auto;display:flex;align-items:center;gap:.6rem;}
+.editor-meta span{font-size:.58rem;color:var(--muted);font-family:var(--mono);}
+
+.editor-wrap{display:flex;flex:1;overflow:hidden;min-height:0;}
+.line-nums{
+  padding:.82rem .5rem .82rem .35rem;background:rgba(0,0,0,.35);
+  color:#2a4878;text-align:right;user-select:none;flex-shrink:0;
+  min-width:34px;font-size:12px;line-height:1.7;overflow:hidden;font-family:var(--mono);
+}
+textarea#code{
+  flex:1;padding:.82rem;background:transparent;color:var(--white);
+  border:none;outline:none;resize:none;font-family:var(--mono);font-size:13px;
+  line-height:1.7;tab-size:4;overflow-y:auto;white-space:pre;overflow-wrap:normal;
+  caret-color:var(--accent);
+}
+textarea#code::-webkit-scrollbar{width:4px;height:4px;}
+textarea#code::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+textarea#code::selection{background:rgba(240,180,41,.2);}
+
+.output-pane{display:flex;flex-direction:column;overflow:hidden;}
+.out-tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;}
+.out-tabs::-webkit-scrollbar{height:0;}
+.otab{
+  padding:.38rem .8rem;font-size:.64rem;font-weight:800;letter-spacing:.06em;
+  color:var(--muted-l);cursor:pointer;border-bottom:2px solid transparent;
+  transition:all .15s;text-transform:uppercase;white-space:nowrap;font-family:'Rajdhani',sans-serif;
+}
+.otab:hover{color:var(--accent);}
+.otab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+.tab-panel{display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0;}
+.tab-panel.active{display:flex;}
+.out-body{flex:1;padding:.82rem .9rem;overflow-y:auto;min-height:0;font-family:var(--mono);font-size:12.5px;line-height:1.75;}
+.out-body::-webkit-scrollbar{width:4px;}.out-body::-webkit-scrollbar-thumb{background:var(--border);}
+.o-idle{color:var(--muted-l);font-style:italic;}
+.o-ok{color:#86efac;white-space:pre-wrap;}
+.o-err{color:#fca5a5;white-space:pre-wrap;}
+.o-serial{color:#fdba74;white-space:pre-wrap;font-family:var(--mono);}
+
+.verdict-bar{
+  display:flex;align-items:center;gap:.55rem;padding:.5rem .9rem;
+  border-top:1px solid var(--border);font-size:.7rem;background:var(--surface);flex-shrink:0;
+}
+.vbadge{padding:.18rem .55rem;border-radius:4px;font-weight:800;font-size:.64rem;text-transform:uppercase;letter-spacing:.05em;font-family:'Rajdhani',sans-serif;}
+.vb-idle{background:rgba(90,122,158,.1);color:var(--muted-l);}
+.vb-run{background:rgba(240,180,41,.15);color:var(--accent);animation:vblink 1s infinite;}
+.vb-pass{background:rgba(74,222,128,.1);color:var(--green);}
+.vb-fail{background:rgba(248,113,113,.1);color:var(--red);}
+.vb-err{background:rgba(240,180,41,.1);color:var(--accent);}
+.vb-iot{background:rgba(251,146,60,.15);color:var(--orange);}
+.vstats{margin-left:auto;display:flex;gap:.85rem;color:var(--muted-l);font-size:.68rem;}
+.vstats span{color:var(--white);}
+
+.tc-wrap{display:flex;flex-direction:column;gap:.38rem;padding:.82rem;}
+.tc-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.tc-card.pass{border-color:rgba(74,222,128,.35);}.tc-card.fail{border-color:rgba(248,113,113,.35);}
+.tc-head{display:flex;align-items:center;gap:.55rem;padding:.44rem .68rem;font-size:.7rem;font-weight:700;cursor:pointer;}
+.tc-head:hover{background:rgba(255,255,255,.03);}
+.tc-name{flex:1;}.tc-t{font-size:.6rem;color:var(--muted-l);font-family:var(--mono);}
+.tc-body{display:none;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);}
+.tc-card.open .tc-body{display:grid;}
+.tc-col{background:var(--bg);padding:.44rem .68rem;}
+.tc-col-l{color:var(--muted-l);font-size:.55rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.2rem;}
+.tc-col-v{font-family:var(--mono);font-size:11px;white-space:pre-wrap;color:#86efac;word-break:break-all;}
+.tc-col-v.bad{color:#fca5a5;}
+
+.diff-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);}
+.diff-col-h{background:var(--surface);padding:.3rem .7rem;font-size:.58rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;font-family:'Rajdhani',sans-serif;}
+.diff-line{padding:.05rem .7rem;font-family:var(--mono);font-size:11px;white-space:pre-wrap;word-break:break-all;line-height:1.65;}
+.diff-match{background:transparent;color:var(--muted-l);}
+.diff-exp{background:rgba(74,222,128,.1);color:#86efac;}
+.diff-got{background:rgba(248,113,113,.1);color:#fca5a5;}
+
+.speed-list{padding:.82rem;display:flex;flex-direction:column;gap:.45rem;}
+.speed-item{padding:.6rem .8rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:all .15s;}
+.speed-item:hover{border-color:var(--accent-d);background:var(--accent-glow);}
+.speed-item-t{font-size:.73rem;font-weight:700;display:flex;justify-content:space-between;align-items:center;}
+.speed-item-d{font-size:.63rem;color:var(--muted-l);margin-top:.18rem;}
+
+.stdin-bar{
+  border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;
+  height:82px;flex-shrink:0;background:var(--surface);
+}
+.stdin-sec{display:flex;flex-direction:column;border-right:1px solid var(--border);}
+.stdin-sec:last-child{border-right:none;}
+.stdin-lbl{
+  padding:.22rem .9rem;font-size:.57rem;font-weight:800;letter-spacing:.1em;
+  color:var(--accent-d);text-transform:uppercase;border-bottom:1px solid var(--border);
+  background:rgba(0,0,0,.2);font-family:'Rajdhani',sans-serif;
+}
+textarea.stdin{flex:1;background:transparent;color:var(--white);border:none;outline:none;resize:none;font-family:var(--mono);font-size:12px;padding:.38rem .9rem;line-height:1.6;}
+textarea.stdin::placeholder{color:#1e3460;}
+textarea.stdin[readonly]{color:var(--muted-l);}
+
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(5px);}
+.modal-bg.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border-l);border-radius:12px;width:480px;max-width:92vw;overflow:hidden;animation:modal-in .2s ease;box-shadow:0 24px 64px rgba(0,0,0,.6),0 0 0 1px rgba(240,180,41,.08);}
+@keyframes modal-in{from{opacity:0;transform:scale(.94) translateY(12px)}to{opacity:1;transform:none}}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem;border-bottom:1px solid var(--border);font-weight:800;font-size:.88rem;font-family:'Rajdhani',sans-serif;color:var(--accent);}
+.modal-close{background:none;border:none;color:var(--muted-l);font-size:1.15rem;cursor:pointer;padding:.08rem .28rem;border-radius:4px;}
+.modal-close:hover{color:var(--white);background:var(--surface2);}
+.modal-body{padding:1rem;font-size:.78rem;line-height:1.75;color:var(--muted-l);}
+.hint-step{display:flex;gap:.6rem;margin-bottom:.6rem;padding:.55rem .7rem;background:var(--surface2);border-radius:6px;border-left:3px solid var(--accent);}
+.hint-num{color:var(--accent);font-weight:800;font-family:var(--mono);flex-shrink:0;}
+.modal-foot{padding:.65rem 1rem;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:.45rem;}
+.runtime-list{display:flex;flex-direction:column;gap:.28rem;max-height:320px;overflow-y:auto;padding:.82rem;}
+.runtime-row{display:flex;align-items:center;gap:.55rem;padding:.38rem .6rem;background:var(--surface2);border-radius:5px;font-size:.7rem;}
+.runtime-lang{font-weight:700;flex:1;}
+.runtime-ver{font-family:var(--mono);font-size:.62rem;color:var(--accent);}
+.runtime-status{font-size:.65rem;padding:.08rem .35rem;border-radius:3px;font-weight:800;}
+.rs-ok{background:rgba(74,222,128,.1);color:var(--green);}
+.rs-missing{background:rgba(248,113,113,.1);color:var(--red);}
+.rs-sim{background:rgba(251,146,60,.1);color:var(--orange);}
+
+.toast{
+  position:fixed;bottom:1.4rem;right:1.4rem;padding:.6rem 1rem;border-radius:8px;
+  font-size:.75rem;font-weight:700;z-index:600;
+  transform:translateY(80px);opacity:0;transition:all .28s cubic-bezier(.34,1.56,.64,1);
+  max-width:320px;pointer-events:none;font-family:var(--font);
+}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast-ok{background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.45);color:var(--green);}
+.toast-err{background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.45);color:var(--red);}
+.toast-info{background:rgba(240,180,41,.12);border:1px solid rgba(240,180,41,.35);color:var(--accent);}
+.toast-iot{background:rgba(251,146,60,.15);border:1px solid rgba(251,146,60,.45);color:var(--orange);}
+
+.confetti-wrap{position:fixed;inset:0;pointer-events:none;z-index:999;overflow:hidden;}
+.cp{position:absolute;width:8px;height:8px;border-radius:2px;animation:cf 2.2s ease-in forwards;}
+@keyframes cf{0%{transform:translateY(-30px) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(780deg);opacity:0}}
+
+@keyframes shimmer{0%{background-position:-300px 0}100%{background-position:300px 0}}
+.shimmer{
+  background:linear-gradient(90deg,var(--muted-l) 0%,var(--accent) 50%,var(--muted-l) 100%);
+  background-size:300px;-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  animation:shimmer 1.4s ease-in-out infinite;
+}
+
+body.light{
+  --bg:#e8edf5;--surface:#f2f5fb;--surface2:#dde3f0;--surface3:#ccd4e8;
+  --border:#b0bcda;--border-l:#8fa0c8;--white:#0f1d35;--muted:#4a5d80;--muted-l:#374f72;
+  --accent-glow:rgba(200,146,26,.15);
+}
+body.light::before{background:radial-gradient(ellipse 65% 45% at 8% 4%, rgba(200,146,26,.07) 0%, transparent 55%),radial-gradient(ellipse 55% 40% at 92% 92%, rgba(56,130,200,.05) 0%, transparent 55%);}
+body.light header{background:rgba(232,237,245,.97)!important;border-bottom-color:var(--accent-d)!important;}
+body.light .sidebar{background:rgba(220,228,242,.98)!important;}
+body.light .lang-btn{background:var(--surface)!important;border-color:var(--border)!important;color:var(--muted-l)!important;}
+body.light .lang-btn.active{background:var(--accent-glow)!important;border-color:var(--accent)!important;color:var(--accent-d)!important;}
+body.light .mode-btn{background:var(--surface)!important;border-color:var(--border)!important;color:var(--muted-l)!important;}
+body.light .mode-btn.active{background:var(--accent-glow)!important;border-color:var(--accent)!important;color:var(--accent-d)!important;}
+body.light .ex-item:hover{background:var(--surface)!important;border-color:var(--border-l)!important;}
+body.light .ex-item.active{background:var(--accent-glow)!important;border-color:rgba(200,146,26,.4)!important;}
+body.light .stat-c{background:var(--surface)!important;}
+body.light .stat-n{color:var(--accent-d)!important;}
+body.light .prob-bar{background:var(--surface)!important;}
+body.light .prob-title{color:#0f1d35!important;}
+body.light .editor-pane{background:#f7f9fd!important;}
+body.light .pane-header{background:var(--surface)!important;border-color:var(--border)!important;}
+body.light textarea#code{background:#f7f9fd!important;color:#0f1d35!important;caret-color:var(--accent-d)!important;}
+body.light .output-pane{background:#f7f9fd!important;}
+body.light .out-tabs{background:var(--surface)!important;border-color:var(--border)!important;}
+body.light .otab.active{color:var(--accent-d)!important;border-bottom-color:var(--accent-d)!important;}
+body.light .out-body{background:#f7f9fd!important;}
+body.light .o-ok{color:#16653a!important;}
+body.light .o-err{color:#b91c1c!important;}
+body.light .verdict-bar{background:var(--surface)!important;border-color:var(--border)!important;}
+body.light .stdin-bar{background:var(--surface)!important;}
+body.light textarea.stdin{color:#0f1d35!important;}
+body.light .btn-ghost{background:var(--surface)!important;border-color:var(--border-l)!important;color:var(--muted-l)!important;}
+body.light .icon-btn{border-color:var(--border-l)!important;color:var(--muted-l)!important;}
+body.light .modal{background:var(--surface)!important;}
+
+.mob-action-bar{display:none;align-items:center;gap:.35rem;padding:.45rem .75rem;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;}
+.mob-pane-btn{flex:0 0 auto!important;min-width:36px;padding:.3rem .45rem!important;font-size:.82rem!important;}
+.mob-pane-btn.active{border-color:var(--accent)!important;color:var(--accent)!important;background:var(--accent-glow)!important;}
+
+#typing-panel{display:none;flex-direction:column;flex:1;overflow:hidden;}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+@media(max-width:880px){
+  :root{--header-h:48px;}
+  header{padding:0 .65rem;gap:.45rem;}
+  #logo-text{display:none;}
+  .hc-pill{padding:.2rem .48rem;font-size:.62rem;}
+  #usage-pill{display:none!important;}
+  .icon-btn{padding:.25rem .4rem;font-size:.75rem;}
+  #api-label{display:none;}
+  .sidebar{position:fixed;top:var(--header-h);left:0;bottom:0;width:270px!important;transform:translateX(-100%);transition:transform .3s cubic-bezier(.4,0,.2,1);z-index:260;box-shadow:4px 0 24px rgba(0,0,0,.5);overflow-y:auto;display:flex!important;flex-direction:column!important;}
+  .sidebar.open{transform:translateX(0);}
+  .sidebar.collapsed{width:270px!important;overflow-y:auto!important;transform:translateX(-100%);}
+  .sidebar.collapsed.open{transform:translateX(0);}
+  .app{flex-direction:column;overflow:hidden;}
+  .main{width:100%;flex:1;min-height:0;}
+  .prob-bar{padding:.4rem .65rem;align-items:center;}
+  .prob-desc{display:none;}
+  .prob-actions{display:none!important;}
+  .mob-action-bar{display:flex!important;padding:.4rem .65rem;gap:.28rem;height:46px;align-items:center;}
+  .mob-action-bar .btn{flex:1;justify-content:center;padding:.3rem .3rem;font-size:.65rem;min-height:32px;}
+  .editor-output{grid-template-columns:1fr!important;grid-template-rows:1fr!important;flex:1;overflow:hidden;min-height:0;}
+  .editor-pane,.output-pane{grid-column:1;grid-row:1;width:100%;border-right:none!important;overflow:hidden;}
+  .stdin-bar{grid-template-columns:1fr;height:auto;max-height:64px;flex-shrink:0;}
+  .stdin-sec{border-right:none!important;border-bottom:1px solid var(--border);}
+  .toast{left:.65rem;right:.65rem;max-width:none;text-align:center;bottom:1rem;}
+  textarea#code{font-size:12.5px!important;}
+  .vstats{display:none;}
+}
+@media(max-width:480px){
+  :root{--header-h:46px;}
+  .modal{width:100%;max-width:100%;border-radius:14px 14px 0 0;margin-top:auto;}
+  .modal-bg{align-items:flex-end;}
+}
+</style>
+</head>
+<body>
+<div class="confetti-wrap" id="confetti-wrap"></div>
+<div class="toast" id="toast"></div>
+
+<!-- HINT MODAL -->
+<div class="modal-bg" id="hint-modal">
+  <div class="modal">
+    <div class="modal-head"><span>💡 Hints</span><button class="modal-close" onclick="closeModal('hint-modal')">✕</button></div>
+    <div class="modal-body" id="hint-content"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('hint-modal')">Close</button>
+      <button class="btn btn-hint" id="hint-next-btn" onclick="nextHint()">Next Hint →</button>
+    </div>
+  </div>
+</div>
+
+<!-- RUNTIMES MODAL -->
+<div class="modal-bg" id="rt-modal">
+  <div class="modal">
+    <div class="modal-head"><span>⚡ Installed Runtimes</span><button class="modal-close" onclick="closeModal('rt-modal')">✕</button></div>
+    <div class="runtime-list" id="rt-list"><div style="padding:.5rem;color:var(--muted-l);font-size:.75rem">Loading…</div></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('rt-modal')">Close</button></div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    <span id="logo-text"><span class="logo-name">Code Compiler</span></span>
+  </div>
+  <div class="header-mid">
+    <button class="hc-pill active" id="pill-normal" onclick="setChallenge('normal')">📚 Practice</button>
+    <button class="hc-pill" id="pill-speed" onclick="setChallenge('speed')">⚡ Speed</button>
+    <button class="hc-pill" id="pill-daily" onclick="setChallenge('daily')">🗓 Daily</button>
+    <button class="hc-pill iot-pill" id="pill-iot" onclick="setChallenge('iot')">🔌 IoT / Arduino</button>
+  </div>
+  <div class="header-right">
+    <div class="usage-pill" id="usage-pill">
+      <div>
+        <div id="usage-label" style="font-size:.66rem;font-weight:700;color:var(--white)">0 runs today</div>
+        <div style="font-size:.55rem;color:var(--muted-l);margin-top:1px">Daily activity</div>
+      </div>
+      <div class="usage-bar-wrap"><div class="usage-bar" id="usage-bar" style="width:0%"></div></div>
+    </div>
+    <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme">🌓</button>
+    <button class="icon-btn" onclick="toggleSidebar()" title="Toggle sidebar">☰</button>
+    <div class="api-status" onclick="openModal('rt-modal')" title="View runtimes">
+      <div class="dot-live dot-checking" id="api-dot"></div>
+      <span id="api-label" style="color:var(--muted-l);font-size:.68rem">Checking…</span>
+    </div>
+  </div>
+</header>
+
+<div class="app">
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebarMobile()"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-section" id="lang-section">
+      <div class="sb-label">Language <span class="sb-chip" id="lang-count">15</span></div>
+      <div class="lang-grid" id="lang-grid">
+        <button class="lang-btn active" data-lang="python"     onclick="setLang(this,'python')"><span class="lang-emoji">🐍</span>Python<span class="lang-ver" id="lv-python"></span></button>
+        <button class="lang-btn"        data-lang="javascript" onclick="setLang(this,'javascript')"><span class="lang-emoji">🟨</span>JS<span class="lang-ver" id="lv-javascript"></span></button>
+        <button class="lang-btn"        data-lang="typescript" onclick="setLang(this,'typescript')"><span class="lang-emoji">🔷</span>TS<span class="lang-ver" id="lv-typescript"></span></button>
+        <button class="lang-btn"        data-lang="cpp"        onclick="setLang(this,'cpp')"><span class="lang-emoji">⚡</span>C++<span class="lang-ver" id="lv-cpp"></span></button>
+        <button class="lang-btn"        data-lang="java"       onclick="setLang(this,'java')"><span class="lang-emoji">☕</span>Java<span class="lang-ver" id="lv-java"></span></button>
+        <button class="lang-btn"        data-lang="c"          onclick="setLang(this,'c')"><span class="lang-emoji">🔵</span>C<span class="lang-ver" id="lv-c"></span></button>
+        <button class="lang-btn"        data-lang="rust"       onclick="setLang(this,'rust')"><span class="lang-emoji">🦀</span>Rust<span class="lang-ver" id="lv-rust"></span></button>
+        <button class="lang-btn"        data-lang="go"         onclick="setLang(this,'go')"><span class="lang-emoji">🐹</span>Go<span class="lang-ver" id="lv-go"></span></button>
+        <button class="lang-btn"        data-lang="php"        onclick="setLang(this,'php')"><span class="lang-emoji">🐘</span>PHP<span class="lang-ver" id="lv-php"></span></button>
+        <button class="lang-btn"        data-lang="kotlin"     onclick="setLang(this,'kotlin')"><span class="lang-emoji">🎯</span>Kotlin<span class="lang-ver" id="lv-kotlin"></span></button>
+        <button class="lang-btn"        data-lang="ruby"       onclick="setLang(this,'ruby')"><span class="lang-emoji">💎</span>Ruby<span class="lang-ver" id="lv-ruby"></span></button>
+        <button class="lang-btn"        data-lang="csharp"     onclick="setLang(this,'csharp')"><span class="lang-emoji">🔶</span>C#<span class="lang-ver" id="lv-csharp"></span></button>
+        <button class="lang-btn"        data-lang="swift"      onclick="setLang(this,'swift')"><span class="lang-emoji">🍎</span>Swift<span class="lang-ver" id="lv-swift"></span></button>
+        <button class="lang-btn"        data-lang="dart"       onclick="setLang(this,'dart')"><span class="lang-emoji">🎯</span>Dart<span class="lang-ver" id="lv-dart"></span></button>
+        <button class="lang-btn"        data-lang="lua"        onclick="setLang(this,'lua')"><span class="lang-emoji">🌙</span>Lua<span class="lang-ver" id="lv-lua"></span></button>
+      </div>
+    </div>
+
+    <div class="sb-section" id="iot-section" style="display:none;">
+      <div class="sb-label" style="color:var(--orange);">🔌 Arduino / IoT <span class="sb-chip orange">Practicals</span></div>
+      <div style="display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.6rem;">
+        <button class="lang-btn iot-active" style="flex:1;min-width:80px;" onclick="setIoTLang('arduino')"><span class="lang-emoji">🔌</span>Arduino C</button>
+        <button class="lang-btn" style="flex:1;min-width:80px;" onclick="setIoTLang('python-iot')"><span class="lang-emoji">🐍</span>MicroPython</button>
+      </div>
+      <div style="padding:.4rem .5rem;background:rgba(251,146,60,.07);border:1px solid rgba(251,146,60,.18);border-radius:6px;font-size:.6rem;color:var(--muted-l);line-height:1.55;">
+        <span style="color:var(--orange);font-weight:700;">ℹ️ Simulator Mode:</span> Code is validated for syntax and Serial output is simulated. No hardware needed.
+      </div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-label">Mode</div>
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="mode-ex"   onclick="setMode('exercises')">📚 Exercises</button>
+        <button class="mode-btn"        id="mode-free" onclick="setMode('freeform')">✏️ Free</button>
+      </div>
+    </div>
+
+    <div class="sb-section" id="ex-sidebar">
+      <div class="sb-label">Exercises <span class="sb-chip" id="solved-badge">0/9</span></div>
+      <div class="ex-list" id="ex-list"></div>
+    </div>
+
+    <div class="sb-section" id="typing-sidebar">
+      <div class="sb-label">⌨️ Typing Course <span class="sb-chip" id="typing-progress-badge">0/10</span></div>
+      <div id="chapter-list"></div>
+    </div>
+
+    <div class="sb-section" id="iot-ex-sidebar" style="display:none;">
+      <div class="sb-label" style="color:var(--orange)">IoT Practicals <span class="sb-chip orange" id="iot-solved-badge">0/8</span></div>
+      <div class="ex-list" id="iot-ex-list"></div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-label">Editor</div>
+      <div style="display:flex;gap:.28rem;flex-wrap:wrap;">
+        <button class="mode-btn" onclick="changeFontSize(-1)">A−</button>
+        <button class="mode-btn" onclick="changeFontSize(1)">A+</button>
+        <button class="mode-btn" onclick="toggleWrap()" id="wrap-btn">↩ Wrap</button>
+        <button class="mode-btn" onclick="copyCode()">📋 Copy</button>
+      </div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-label">Session</div>
+      <div class="stats-grid">
+        <div class="stat-c"><div class="stat-n" id="s-runs">0</div><div class="stat-l">Runs</div></div>
+        <div class="stat-c"><div class="stat-n" style="color:var(--green)" id="s-solved">0</div><div class="stat-l">Solved</div></div>
+        <div class="stat-c"><div class="stat-n" style="color:var(--cyan)" id="s-avg">—</div><div class="stat-l">Avg ms</div></div>
+        <div class="stat-c"><div class="stat-n" style="color:var(--accent)" id="s-pts">0</div><div class="stat-l">Points</div></div>
+      </div>
+      <div class="streak-bar">
+        <div class="streak-day done"></div><div class="streak-day done"></div>
+        <div class="streak-day"></div><div class="streak-day done"></div>
+        <div class="streak-day done"></div><div class="streak-day"></div>
+        <div class="streak-day today"></div>
+      </div>
+      <div class="api-info-box">
+        <div class="api-info-box-t">⚡ Piston API</div>
+        <div class="api-info-box-d" id="api-info-d">Fetching runtime info…</div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="prob-bar" id="prob-bar">
+      <div style="flex:1;min-width:0;">
+        <div class="prob-title" id="prob-title">Hello World</div>
+        <div class="prob-desc"  id="prob-desc">Write a program that prints "Hello, World!" to the console.</div>
+        <div class="prob-tags">
+          <span class="tag t-easy" id="diff-tag">Easy</span>
+          <span class="tag t-lang" id="lang-tag">Python 3</span>
+          <span class="tag t-topic" id="topic-tag">I/O Basics</span>
+          <span class="tag t-topic" id="pts-tag" style="background:rgba(240,180,41,.1);color:var(--accent)">+10 pts</span>
+        </div>
+      </div>
+      <div class="prob-actions">
+        <button class="btn btn-ghost" onclick="resetCode()">↺ Reset</button>
+        <button class="btn btn-hint"  id="hint-btn" onclick="openHint()">💡 Hint</button>
+        <button class="btn btn-run"   id="run-btn"  onclick="runCode()"><span id="run-icon">▶</span> <span id="run-lbl">Run</span></button>
+        <button class="btn btn-submit" id="submit-btn" onclick="submitCode()">✓ Submit</button>
+      </div>
+    </div>
+
+    <div class="mob-action-bar" id="mob-action-bar">
+      <button class="btn btn-ghost mob-pane-btn active" id="pane-editor-btn" onclick="mobSwitchPane('editor')">✏️</button>
+      <button class="btn btn-ghost mob-pane-btn" id="pane-output-btn" onclick="mobSwitchPane('output')">📤</button>
+      <button class="btn btn-ghost" style="flex:1;" onclick="resetCode()">↺</button>
+      <button class="btn btn-hint"  style="flex:1;" id="hint-btn-mob" onclick="openHint()">💡</button>
+      <button class="btn btn-run"   style="flex:2;justify-content:center;" id="run-btn-mob" onclick="runCode()"><span id="run-icon-mob">▶</span> Run</button>
+      <button class="btn btn-submit" style="flex:2;" id="submit-btn-mob" onclick="submitCode()">✓</button>
+    </div>
+
+    <div class="iot-notice" id="iot-notice">
+      <span class="iot-notice-icon">🔌</span>
+      <div>
+        <strong>Arduino / IoT Simulator Mode</strong> — Code is syntax-checked and Serial output is simulated.
+        <a href="https://wokwi.com" target="_blank" style="color:var(--orange);margin-left:.5rem;">Open Wokwi Simulator ↗</a>
+      </div>
+    </div>
+
+    <div class="ff-notice" id="ff-notice">✏️ <strong>Free-form mode</strong> — Write anything. Use stdin below for input.</div>
+
+    <!-- Typing Panel -->
+    <div id="typing-panel" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+      <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:.6rem 1.1rem;display:flex;align-items:center;gap:1rem;flex-shrink:0;flex-wrap:wrap;">
+        <button onclick="closeTyping()" style="background:var(--surface2);border:1px solid var(--border-l);color:var(--muted-l);padding:.28rem .65rem;border-radius:6px;cursor:pointer;font-size:.72rem;font-family:var(--font);">← Back</button>
+        <div style="flex:1;min-width:120px;">
+          <div id="ch-title" style="font-weight:800;font-size:.9rem;font-family:'Rajdhani',sans-serif;color:var(--accent);"></div>
+          <div id="ch-desc"  style="font-size:.68rem;color:var(--muted-l);margin-top:.1rem;"></div>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+          <div style="text-align:center;background:var(--surface2);border:1px solid var(--border);padding:.3rem .7rem;border-radius:8px;min-width:54px;">
+            <div id="t-wpm" style="font-size:1.2rem;font-weight:800;color:var(--accent);line-height:1;font-family:'Rajdhani',sans-serif;">0</div>
+            <div style="font-size:.55rem;color:var(--muted-l);text-transform:uppercase;">WPM</div>
+          </div>
+          <div style="text-align:center;background:var(--surface2);border:1px solid var(--border);padding:.3rem .7rem;border-radius:8px;min-width:54px;">
+            <div id="t-acc" style="font-size:1.2rem;font-weight:800;color:var(--green);line-height:1;font-family:'Rajdhani',sans-serif;">100%</div>
+            <div style="font-size:.55rem;color:var(--muted-l);text-transform:uppercase;">Accuracy</div>
+          </div>
+          <div style="text-align:center;background:var(--surface2);border:1px solid var(--border);padding:.3rem .7rem;border-radius:8px;min-width:54px;">
+            <div id="t-timer" style="font-size:1.2rem;font-weight:800;color:var(--accent);line-height:1;font-family:'Rajdhani',sans-serif;">0:00</div>
+            <div style="font-size:.55rem;color:var(--muted-l);text-transform:uppercase;">Time</div>
+          </div>
+          <div style="text-align:center;background:var(--surface2);border:1px solid var(--border);padding:.3rem .7rem;border-radius:8px;min-width:54px;">
+            <div id="t-errors" style="font-size:1.2rem;font-weight:800;color:var(--red);line-height:1;font-family:'Rajdhani',sans-serif;">0</div>
+            <div style="font-size:.55rem;color:var(--muted-l);text-transform:uppercase;">Errors</div>
+          </div>
+        </div>
+        <div id="ch-target-badge" style="font-size:.65rem;padding:.3rem .65rem;border-radius:20px;border:1px solid rgba(240,180,41,.3);background:rgba(240,180,41,.08);color:var(--accent);white-space:nowrap;"></div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;padding:1rem;">
+        <div id="typing-display" style="font-family:'Fira Code',monospace;font-size:1rem;line-height:2.1;letter-spacing:.03em;padding:.85rem 1rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:.85rem;min-height:80px;word-break:break-all;user-select:none;overflow-y:auto;max-height:200px;"></div>
+        <textarea id="typing-input" placeholder="Click here and start typing…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+          style="width:100%;flex:1;min-height:80px;max-height:160px;font-family:'Fira Code',monospace;font-size:.88rem;line-height:1.8;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--white);padding:.7rem .9rem;resize:none;outline:none;"
+          oninput="onTypingInput()" onfocus="ensureTimerRunning()"></textarea>
+        <div style="margin-top:.5rem;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;">
+          <div id="t-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent-d),var(--accent));border-radius:3px;transition:width .2s;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:.2rem;">
+          <span id="t-progress-label" style="font-size:.6rem;color:var(--muted-l);">0% complete</span>
+          <span id="t-unlock-label"   style="font-size:.6rem;color:var(--muted-l);">Complete passage to unlock Submit</span>
+        </div>
+        <div style="display:flex;gap:.6rem;margin-top:.65rem;align-items:center;">
+          <button id="typing-reset-btn" onclick="resetTyping()" style="background:var(--surface2);border:1px solid var(--border-l);color:var(--muted-l);padding:.38rem .9rem;border-radius:6px;font-family:var(--font);font-size:.78rem;font-weight:700;cursor:pointer;">↺ Restart</button>
+          <button id="typing-submit-btn" disabled onclick="submitTyping()" style="flex:1;padding:.42rem 1rem;border-radius:6px;font-family:var(--font);font-size:.82rem;font-weight:700;background:var(--surface2);border:2px dashed var(--border);color:var(--muted-l);cursor:not-allowed;transition:all .25s;">🔒 Complete Typing to Unlock</button>
+        </div>
+        <div id="typing-result" style="display:none;margin-top:.65rem;padding:.85rem 1rem;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.25);border-radius:8px;">
+          <div style="font-weight:800;color:var(--green);margin-bottom:.4rem;font-family:'Rajdhani',sans-serif;">✅ Chapter Complete!</div>
+          <div id="typing-result-body" style="font-size:.78rem;color:var(--muted-l);line-height:1.8;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="timer-bar" id="timer-bar">
+      <span style="color:var(--accent-d);font-size:.68rem;font-weight:700;">⚡ Speed Run</span>
+      <div class="timer-clock" id="timer-clock">05:00</div>
+      <div class="timer-prog"><div class="timer-fill" id="timer-fill" style="width:100%;"></div></div>
+      <span id="timer-score" style="font-size:.68rem;color:var(--accent);">0 pts</span>
+      <button class="btn btn-ghost" style="padding:.22rem .55rem;font-size:.65rem;" onclick="stopTimer()">■ Stop</button>
+    </div>
+
+    <div class="editor-output" id="editor-output">
+      <div class="editor-pane" id="editor-pane">
+        <div class="pane-header">
+          <div class="traffic"><div class="tl tl-r"></div><div class="tl tl-y"></div><div class="tl tl-g"></div></div>
+          <span class="pane-label" id="filename">main.py</span>
+          <div class="editor-meta"><span id="char-count">0L · 0C</span></div>
+        </div>
+        <div class="editor-wrap">
+          <div class="line-nums" id="lnums">1</div>
+          <textarea id="code" spellcheck="false" oninput="onCodeInput()" onkeydown="onKeyDown(event)"></textarea>
+        </div>
+      </div>
+
+      <div class="output-pane" id="output-pane">
+        <div class="out-tabs" id="out-tabs-desktop">
+          <div class="otab active" onclick="switchTab('output',this)">Output</div>
+          <div class="otab" onclick="switchTab('testcases',this)" id="tc-tab">Test Cases</div>
+          <div class="otab" onclick="switchTab('diff',this)" id="diff-tab">Diff</div>
+          <div class="otab iot-tab" onclick="switchTab('serial',this)" id="serial-tab" style="display:none;">📟 Serial</div>
+          <div class="otab" onclick="switchTab('speed',this)">⚡ Speed</div>
+        </div>
+
+        <div class="tab-panel active" id="tab-output">
+          <div class="out-body" id="out-body"><span class="o-idle">▸ Press Ctrl+Enter or click Run to execute…</span></div>
+          <div class="verdict-bar">
+            <span class="vbadge vb-idle" id="vbadge">Idle</span>
+            <div class="vstats">
+              <span>Time: <span id="v-t">—</span></span>
+              <span>Exit: <span id="v-e">—</span></span>
+              <span id="pts-earned" style="color:var(--accent);display:none;">+<span id="v-pts">0</span>pts</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="tab-testcases">
+          <div class="out-body" style="padding:0;overflow-y:auto;">
+            <div class="tc-wrap" id="tc-wrap"><div style="padding:.6rem;color:var(--muted-l);font-size:.73rem;font-style:italic;">Submit to see test case results…</div></div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="tab-diff">
+          <div class="out-body" style="padding:0;overflow-y:auto;" id="diff-body">
+            <div style="padding:.82rem;color:var(--muted-l);font-size:.73rem;font-style:italic;">Run code to see diff…</div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="tab-serial">
+          <div class="out-body" style="padding:0;overflow-y:auto;">
+            <div style="padding:.5rem .9rem;background:rgba(251,146,60,.05);border-bottom:1px solid rgba(251,146,60,.15);display:flex;align-items:center;gap:.5rem;flex-shrink:0;">
+              <span style="font-size:.62rem;color:var(--orange);font-weight:800;font-family:'Rajdhani',sans-serif;">📟 Serial Monitor</span>
+              <span style="font-size:.58rem;color:var(--muted-l);">9600 baud</span>
+              <button onclick="clearSerial()" style="margin-left:auto;background:none;border:1px solid rgba(251,146,60,.3);color:var(--orange);padding:.1rem .4rem;border-radius:4px;font-size:.6rem;cursor:pointer;">Clear</button>
+            </div>
+            <div id="serial-output" style="padding:.7rem .9rem;font-family:var(--mono);font-size:12px;color:#fdba74;white-space:pre-wrap;"></div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="tab-speed">
+          <div class="out-body" style="padding:0;overflow-y:auto;">
+            <div class="speed-list" id="speed-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stdin-bar" id="stdin-bar">
+      <div class="stdin-sec">
+        <div class="stdin-lbl">Standard Input (stdin)</div>
+        <textarea class="stdin" id="stdin" placeholder="Input for your program…"></textarea>
+      </div>
+      <div class="stdin-sec">
+        <div class="stdin-lbl">Expected Output</div>
+        <textarea class="stdin" id="expected" placeholder="Expected output…" readonly></textarea>
+      </div>
+    </div>
+
+    <div id="iot-pin-bar" style="display:none;border-top:1px solid rgba(251,146,60,.2);background:rgba(251,146,60,.04);padding:.4rem .9rem;flex-shrink:0;">
+      <div style="font-size:.58rem;color:var(--orange);font-weight:800;margin-bottom:.25rem;font-family:'Rajdhani',sans-serif;">📌 PINS USED</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.28rem;" id="pin-grid"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+//  ⚙️  CONFIGURATION — EDIT THIS
+// ══════════════════════════════════════════
+// Host your own Piston API: https://github.com/engineer-man/piston
+// Then replace the URL below with your server address.
+const API = 'YOUR_PISTON_API_URL'; // e.g. 'http://localhost:2000' or 'https://your-piston-server.com'
+
+// ══════════════════════════════════════════
+//  TYPING COURSE
+// ══════════════════════════════════════════
+const TYPING_CHAPTERS = [
+  { id:1,  title:'Ch 1 — Home Row',        keys:'A S D F J K L ;',      desc:'Master the foundation — fingers never leave home row.',        target:'15 WPM', passage:'aaa sss ddd fff jjj kkk lll asd fds jkl lkj asdf jkl; fdsa ;lkj all fall sad lad lass flask salads falls' },
+  { id:2,  title:'Ch 2 — Top Row',         keys:'Q W E R T Y U I O P',  desc:'Reach up confidently — top row letters.',                     target:'18 WPM', passage:'queue writ rope type your power quite worry upper outer tower poetry pretty quote route proper worry write type your' },
+  { id:3,  title:'Ch 3 — Bottom Row',      keys:'Z X C V B N M , . /', desc:'Reach down — complete your full keyboard control.',            target:'18 WPM', passage:'zinc exam cave brave norm move calm zone exact zinc verb maze brown calm next above mix zone canvas verb' },
+  { id:4,  title:'Ch 4 — Capital Letters', keys:'Shift + All Keys',      desc:'Shift key control — proper nouns and sentence starts.',        target:'20 WPM', passage:'The Quick Brown Fox Jumps Over The Lazy Dog Every Good Boy Does Fine Pack My Box With Five Dozen Liquor Jugs' },
+  { id:5,  title:'Ch 5 — Numbers Row',     keys:'1 2 3 4 5 6 7 8 9 0',  desc:'Type numbers fluently.',                                      target:'20 WPM', passage:'1234 5678 90 2024 1947 2001 3456 7890 12345 67890 roll number 2024 application 9876543210 year 1950 section 420' },
+  { id:6,  title:'Ch 6 — Punctuation',     keys:", . ; : ' \" ! ? - _", desc:'Commas, full stops, colons — essential punctuation.',          target:'22 WPM', passage:"The case, filed in 2023, was decided. The court held: \"Justice delayed is justice denied.\" The matter was adjourned." },
+  { id:7,  title:'Ch 7 — Common Words',    keys:'Mixed — Vocab',         desc:'High-frequency English words.',                               target:'25 WPM', passage:'the government shall ensure that all citizens have access to education and health services as defined by the constitution and its various articles' },
+  { id:8,  title:'Ch 8 — Slow Sentences',  keys:'Full Mixed',            desc:'Complete sentences — build rhythm and flow at a steady pace.', target:'28 WPM', passage:'The public service commission conducts examinations for recruitment to various services and posts. Candidates must fulfill the eligibility criteria before applying for any position.' },
+  { id:9,  title:'Ch 9 — Speed Sentences', keys:'Full Mixed + Speed',    desc:'Push your speed — target exam-level WPM consistently.',        target:'35 WPM', passage:'The constitution provides for a parliamentary form of government which is federal in structure with unitary features. The president is the constitutional head of the executive of the union.' },
+  { id:10, title:'Ch 10 — Full Test',      keys:'Exam Simulation',       desc:'10-minute full passage typing test.',                          target:'30–40 WPM', passage:'A democratic republic is governed by a constitution which provides for the rights and duties of its citizens. The system of government ensures separation of powers between the legislature, executive, and judiciary. The legislature makes laws, the executive implements them, and the judiciary interprets them. Citizens participate in governance through free and fair elections held at regular intervals. The rule of law is the cornerstone of any functioning democracy, ensuring that all persons are equal before the law regardless of their status or position in society.' },
+];
+
+let tCurrentChapter=null, tStartTime=null, tTimerInterval=null;
+let tTotalSeconds=0, tErrorCount=0, tCompleted=false;
+let tChaptersDone=new Set();
+
+function buildChapterList() {
+  const el=document.getElementById('chapter-list');
+  if(!el) return;
+  el.style.cssText='display:flex;flex-direction:column;gap:.28rem;';
+  el.innerHTML=TYPING_CHAPTERS.map(ch=>`
+    <div id="ch-item-${ch.id}" onclick="openTypingChapter(${ch.id})"
+      style="display:flex;align-items:center;gap:.5rem;padding:.42rem .6rem;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;transition:all .15s;"
+      onmouseover="this.style.borderColor='var(--accent)';this.style.background='var(--accent-glow)'" onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--surface2)'">
+      <span style="font-size:.65rem;font-weight:800;color:var(--accent);min-width:18px;font-family:'Rajdhani',sans-serif;">${ch.id}.</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.73rem;font-weight:700;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ch.title.replace('Ch '+ch.id+' — ','')}</div>
+        <div style="font-size:.58rem;color:var(--muted-l);margin-top:.05rem;">${ch.keys}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:.62rem;font-weight:700;color:var(--accent);">${ch.target}</div>
+      </div>
+      <span id="ch-done-${ch.id}" style="display:none;">✅</span>
+    </div>`).join('');
+}
+
+function openTypingChapter(id) {
+  tCurrentChapter=TYPING_CHAPTERS.find(c=>c.id===id);
+  if(!tCurrentChapter) return;
+  document.getElementById('prob-bar').style.display='none';
+  document.getElementById('ff-notice').style.display='none';
+  document.getElementById('iot-notice').style.display='none';
+  document.getElementById('editor-output').style.display='none';
+  document.getElementById('timer-bar').classList.remove('on');
+  document.getElementById('stdin-bar').style.display='none';
+  document.getElementById('iot-pin-bar').style.display='none';
+  const panel=document.getElementById('typing-panel');
+  panel.style.display='flex';
+  document.getElementById('ch-title').textContent=tCurrentChapter.title;
+  document.getElementById('ch-desc').textContent=tCurrentChapter.desc;
+  document.getElementById('ch-target-badge').textContent='🎯 Target: '+tCurrentChapter.target;
+  resetTyping();
+  if(window.innerWidth<=880) closeSidebarMobile();
+  setTimeout(()=>document.getElementById('typing-input').focus(),80);
+}
+
+function closeTyping() {
+  tCurrentChapter=null; tCompleted=false; stopTypingTimer();
+  document.getElementById('typing-panel').style.display='none';
+  document.getElementById('prob-bar').style.display='flex';
+  document.getElementById('editor-output').style.display='';
+  document.getElementById('stdin-bar').style.display=iotMode?'none':'';
+  document.getElementById('iot-pin-bar').style.display=iotMode?'':'none';
+  document.getElementById('iot-notice').style.display=iotMode?'flex':'none';
+  document.getElementById('ff-notice').style.display=(mode==='freeform'&&!iotMode)?'flex':'none';
+}
+
+function resetTyping() {
+  stopTypingTimer();
+  tStartTime=null; tTotalSeconds=0; tErrorCount=0; tCompleted=false;
+  document.getElementById('typing-input').value='';
+  document.getElementById('t-wpm').textContent='0';
+  document.getElementById('t-acc').textContent='100%';
+  document.getElementById('t-timer').textContent='0:00';
+  document.getElementById('t-errors').textContent='0';
+  document.getElementById('t-progress-bar').style.width='0%';
+  document.getElementById('t-progress-label').textContent='0% complete';
+  document.getElementById('t-unlock-label').textContent='Complete passage to unlock Submit';
+  document.getElementById('typing-result').style.display='none';
+  const sb=document.getElementById('typing-submit-btn');
+  sb.disabled=true;
+  sb.style.cssText='flex:1;padding:.42rem 1rem;border-radius:6px;font-family:var(--font);font-size:.82rem;font-weight:700;background:var(--surface2);border:2px dashed var(--border);color:var(--muted-l);cursor:not-allowed;transition:all .25s;';
+  sb.textContent='🔒 Complete Typing to Unlock';
+  sb.onclick=submitTyping;
+  renderPassageDisplay('');
+}
+
+function renderPassageDisplay(typed) {
+  if(!tCurrentChapter) return;
+  const passage=tCurrentChapter.passage;
+  let html='';
+  for(let i=0;i<passage.length;i++){
+    const ch=passage[i]===' '?'&nbsp;':esc(passage[i]);
+    if(i<typed.length){ const ok=typed[i]===passage[i]; html+=`<span style="color:${ok?'var(--green)':'var(--red)'};background:${ok?'transparent':'rgba(248,113,113,.18)'};border-radius:2px;">${ch}</span>`; }
+    else if(i===typed.length){ html+=`<span style="border-left:2px solid var(--accent);margin-left:-1px;">${ch}</span>`; }
+    else { html+=`<span style="color:var(--muted-l);">${ch}</span>`; }
+  }
+  document.getElementById('typing-display').innerHTML=html;
+}
+
+function ensureTimerRunning() { if(tTimerInterval||tCompleted) return; }
+function stopTypingTimer() { clearInterval(tTimerInterval); tTimerInterval=null; }
+
+function onTypingInput() {
+  if(tCompleted) return;
+  const typed=document.getElementById('typing-input').value;
+  const passage=tCurrentChapter.passage;
+  if(typed.length===1&&!tTimerInterval){
+    tStartTime=Date.now();
+    tTimerInterval=setInterval(()=>{
+      tTotalSeconds=Math.floor((Date.now()-tStartTime)/1000);
+      const m=Math.floor(tTotalSeconds/60),s=tTotalSeconds%60;
+      document.getElementById('t-timer').textContent=m+':'+String(s).padStart(2,'0');
+    },500);
+  }
+  renderPassageDisplay(typed);
+  let errs=0;
+  for(let i=0;i<typed.length;i++) if(typed[i]!==passage[i]) errs++;
+  tErrorCount=errs;
+  const pct=Math.round((Math.min(typed.length,passage.length)/passage.length)*100);
+  document.getElementById('t-progress-bar').style.width=pct+'%';
+  document.getElementById('t-progress-label').textContent=pct+'% complete';
+  const correct=typed.split('').filter((c,i)=>c===passage[i]).length;
+  const elapsedMin=tTotalSeconds>0?tTotalSeconds/60:1/60;
+  const wpm=Math.round((correct/5)/elapsedMin);
+  document.getElementById('t-wpm').textContent=wpm>0?wpm:0;
+  const acc=typed.length>0?Math.round((correct/typed.length)*100):100;
+  const accEl=document.getElementById('t-acc');
+  accEl.textContent=acc+'%'; accEl.style.color=acc>=90?'var(--green)':acc>=75?'var(--accent)':'var(--red)';
+  document.getElementById('t-errors').textContent=errs;
+  if(typed.length>=passage.length) unlockSubmit(wpm,acc,errs);
+}
+
+function unlockSubmit(wpm,acc,errs) {
+  tCompleted=true; stopTypingTimer();
+  document.getElementById('t-unlock-label').textContent='✅ Passage complete! Submit your result.';
+  const sb=document.getElementById('typing-submit-btn');
+  sb.disabled=false;
+  sb.style.background='linear-gradient(135deg,var(--accent-d),var(--accent))';
+  sb.style.border='2px solid transparent';
+  sb.style.color='#07111f'; sb.style.cursor='pointer';sb.style.fontWeight='800';
+  sb.textContent='✓ Submit Result';
+  sb.dataset.wpm=wpm; sb.dataset.acc=acc; sb.dataset.errs=errs; sb.dataset.time=tTotalSeconds;
+}
+
+function submitTyping() {
+  const sb=document.getElementById('typing-submit-btn');
+  const wpm=parseInt(sb.dataset.wpm)||0, acc=parseInt(sb.dataset.acc)||0;
+  const errs=parseInt(sb.dataset.errs)||0, secs=parseInt(sb.dataset.time)||0;
+  const mins=Math.floor(secs/60), s=secs%60;
+  const target=parseInt(tCurrentChapter.target)||0;
+  const passed=wpm>=target&&acc>=80;
+  if(passed){ tChaptersDone.add(tCurrentChapter.id); const d=document.getElementById('ch-done-'+tCurrentChapter.id); if(d)d.style.display=''; document.getElementById('typing-progress-badge').textContent=tChaptersDone.size+'/10'; }
+  const resEl=document.getElementById('typing-result');
+  resEl.style.display='block';
+  resEl.style.background=passed?'rgba(74,222,128,.08)':'rgba(248,113,113,.08)';
+  resEl.style.borderColor=passed?'rgba(74,222,128,.25)':'rgba(248,113,113,.25)';
+  document.getElementById('typing-result-body').innerHTML=`
+    <div style="display:flex;gap:.6rem;margin-bottom:.5rem;flex-wrap:wrap;">
+      <div style="text-align:center;flex:1;min-width:50px;background:var(--surface);padding:.4rem;border-radius:6px;"><div style="font-size:1.1rem;font-weight:800;color:var(--accent);font-family:'Rajdhani',sans-serif;">${wpm}</div><div style="font-size:.55rem;color:var(--muted-l);">WPM</div></div>
+      <div style="text-align:center;flex:1;min-width:50px;background:var(--surface);padding:.4rem;border-radius:6px;"><div style="font-size:1.1rem;font-weight:800;color:var(--green);font-family:'Rajdhani',sans-serif;">${acc}%</div><div style="font-size:.55rem;color:var(--muted-l);">Accuracy</div></div>
+      <div style="text-align:center;flex:1;min-width:50px;background:var(--surface);padding:.4rem;border-radius:6px;"><div style="font-size:1.1rem;font-weight:800;color:var(--red);font-family:'Rajdhani',sans-serif;">${errs}</div><div style="font-size:.55rem;color:var(--muted-l);">Errors</div></div>
+      <div style="text-align:center;flex:1;min-width:50px;background:var(--surface);padding:.4rem;border-radius:6px;"><div style="font-size:1.1rem;font-weight:800;color:var(--accent);font-family:'Rajdhani',sans-serif;">${mins}:${String(s).padStart(2,'0')}</div><div style="font-size:.55rem;color:var(--muted-l);">Time</div></div>
+    </div>
+    <div style="font-size:.75rem;color:${passed?'var(--green)':'var(--red)'};">
+      ${passed?'🎉 Passed! Target was '+tCurrentChapter.target+'. Great work!':'⚠️ Not passed. Target: '+tCurrentChapter.target+', Accuracy min: 80%. Try again!'}
+    </div>`;
+  sb.disabled=true; sb.textContent=passed?'✅ Submitted':'❌ Try Again';
+  if(!passed) setTimeout(()=>{ sb.disabled=false; sb.textContent='↺ Retry'; sb.onclick=resetTyping; },1500);
+  if(passed) fireConfetti();
+}
+
+// ══════════════════════════════════════════
+//  LANGUAGE DEFINITIONS
+// ══════════════════════════════════════════
+const LANG_DEFS = {
+  python:     { name:'Python 3',   emoji:'🐍', file:'main.py',    pl:'python',     pv:'3.10.0' },
+  javascript: { name:'JavaScript', emoji:'🟨', file:'index.js',   pl:'javascript', pv:'18.15.0'},
+  typescript: { name:'TypeScript', emoji:'🔷', file:'index.ts',   pl:'typescript', pv:'5.0.3'  },
+  cpp:        { name:'C++ 17',     emoji:'⚡', file:'main.cpp',   pl:'c++',        pv:'10.2.0' },
+  java:       { name:'Java',       emoji:'☕', file:'Main.java',  pl:'java',       pv:'15.0.2' },
+  c:          { name:'C',          emoji:'🔵', file:'main.c',     pl:'c',          pv:'10.2.0' },
+  rust:       { name:'Rust',       emoji:'🦀', file:'main.rs',    pl:'rust',       pv:'1.50.0' },
+  go:         { name:'Go',         emoji:'🐹', file:'main.go',    pl:'go',         pv:'1.16.2' },
+  php:        { name:'PHP',        emoji:'🐘', file:'main.php',   pl:'php',        pv:'8.2.3'  },
+  kotlin:     { name:'Kotlin',     emoji:'🎯', file:'main.kt',    pl:'kotlin',     pv:'1.8.20' },
+  ruby:       { name:'Ruby',       emoji:'💎', file:'main.rb',    pl:'ruby',       pv:'3.0.1'  },
+  csharp:     { name:'C#',         emoji:'🔶', file:'main.cs',    pl:'csharp',     pv:'6.12.0' },
+  swift:      { name:'Swift',      emoji:'🍎', file:'main.swift', pl:'swift',      pv:'5.3.3'  },
+  dart:       { name:'Dart',       emoji:'🎯', file:'main.dart',  pl:'dart',       pv:'2.19.6' },
+  lua:        { name:'Lua',        emoji:'🌙', file:'main.lua',   pl:'lua',        pv:'5.4.4'  },
+};
+const resolvedLang = {};
+
+// ══════════════════════════════════════════
+//  EXERCISES
+// ══════════════════════════════════════════
+const EXERCISES = {
+  hello:{title:'Hello World',desc:'Print exactly "Hello, World!" to stdout.',diff:'Easy',topic:'I/O Basics',points:10,stdin:'',expected:'Hello, World!',
+    tc:[{n:'TC1',i:'',e:'Hello, World!'}],hints:['Use print/output function.','Exact string: Hello, World! (comma+space+exclamation)'],
+    code:{python:'print("Hello, World!")',javascript:'console.log("Hello, World!");',typescript:'console.log("Hello, World!");',cpp:'#include<iostream>\nusing namespace std;\nint main(){cout<<"Hello, World!"<<endl;return 0;}',java:'public class Main{public static void main(String[] a){System.out.println("Hello, World!");}}',c:'#include<stdio.h>\nint main(){printf("Hello, World!\\n");return 0;}',rust:'fn main(){println!("Hello, World!");}',go:'package main\nimport "fmt"\nfunc main(){fmt.Println("Hello, World!")}',php:'<?php\necho "Hello, World!\\n";',kotlin:'fun main(){println("Hello, World!")}',ruby:'puts "Hello, World!"',csharp:'using System;\nclass Main{static void Main(){Console.WriteLine("Hello, World!");}}',swift:'print("Hello, World!")',dart:'void main(){print("Hello, World!");}',lua:'print("Hello, World!")'}},
+  sum:{title:'Sum of Two Numbers',desc:'Read two integers (one per line). Print their sum.',diff:'Easy',topic:'Arithmetic',points:15,stdin:'12\n28',expected:'40',
+    tc:[{n:'TC1',i:'12\n28',e:'40'},{n:'TC2',i:'-5\n15',e:'10'},{n:'TC3',i:'0\n0',e:'0'},{n:'TC4',i:'999\n1',e:'1000'}],hints:['Read two lines, parse as int.','Sum and print.'],
+    code:{python:'a=int(input())\nb=int(input())\nprint(a+b)',javascript:'const l=require("fs").readFileSync("/dev/stdin","utf8").trim().split("\\n");\nconsole.log(+l[0]+ +l[1]);',typescript:'const l=require("fs").readFileSync("/dev/stdin","utf8").trim().split("\\n");\nconsole.log(+l[0]+ +l[1]);',cpp:'#include<iostream>\nusing namespace std;\nint main(){long long a,b;cin>>a>>b;cout<<a+b<<endl;}',java:'import java.util.Scanner;\npublic class Main{public static void main(String[] a){Scanner sc=new Scanner(System.in);System.out.println(sc.nextLong()+sc.nextLong());}}',c:'#include<stdio.h>\nint main(){long long a,b;scanf("%lld\\n%lld",&a,&b);printf("%lld\\n",a+b);}',rust:'use std::io::{self,BufRead};\nfn main(){let s=io::stdin();let mut it=s.lock().lines();let a:i64=it.next().unwrap().unwrap().trim().parse().unwrap();let b:i64=it.next().unwrap().unwrap().trim().parse().unwrap();println!("{}",a+b);}',go:'package main\nimport "fmt"\nfunc main(){var a,b int64;fmt.Scan(&a,&b);fmt.Println(a+b)}',php:'<?php\n$a=intval(trim(fgets(STDIN)));\n$b=intval(trim(fgets(STDIN)));\necho ($a+$b)."\\n";',kotlin:'fun main(){val a=readLine()!!.trim().toLong();val b=readLine()!!.trim().toLong();println(a+b)}',ruby:'a=gets.chomp.to_i\nb=gets.chomp.to_i\nputs a+b',csharp:'using System;\nclass Main{static void Main(){long a=long.Parse(Console.ReadLine());long b=long.Parse(Console.ReadLine());Console.WriteLine(a+b);}}',swift:'let a=Int(readLine()!)!\nlet b=Int(readLine()!)!\nprint(a+b)',dart:'import "dart:io";\nvoid main(){int a=int.parse(stdin.readLineSync()!);int b=int.parse(stdin.readLineSync()!);print(a+b);}',lua:'local a=tonumber(io.read())\nlocal b=tonumber(io.read())\nprint(a+b)'}},
+  factorial:{title:'Factorial',desc:'Read N (0 ≤ N ≤ 20). Print N!',diff:'Easy',topic:'Recursion',points:20,stdin:'5',expected:'120',
+    tc:[{n:'TC1',i:'5',e:'120'},{n:'TC2',i:'0',e:'1'},{n:'TC3',i:'10',e:'3628800'},{n:'TC4',i:'20',e:'2432902008176640000'}],hints:['Base case: 0!=1','Use long/int64 for large N.'],
+    code:{python:'def f(n):\n    return 1 if n<=1 else n*f(n-1)\nprint(f(int(input())))',javascript:'const n=+require("fs").readFileSync("/dev/stdin","utf8").trim();\nconst f=n=>n<=1?1n:BigInt(n)*f(n-1);\nconsole.log(String(f(n)));',typescript:'const n:number=+require("fs").readFileSync("/dev/stdin","utf8").trim();\nconst f=(n:number):bigint=>n<=1?1n:BigInt(n)*f(n-1);\nconsole.log(String(f(n)));',cpp:'#include<iostream>\nusing namespace std;\nunsigned long long f(int n){return n<=1?1:n*f(n-1);}\nint main(){int n;cin>>n;cout<<f(n)<<endl;}',java:'import java.util.Scanner;\npublic class Main{static long f(int n){return n<=1?1:n*f(n-1);}\npublic static void main(String[] a){System.out.println(f(new Scanner(System.in).nextInt()));}}',c:'#include<stdio.h>\nunsigned long long f(int n){return n<=1?1:n*f(n-1);}\nint main(){int n;scanf("%d",&n);printf("%llu\\n",f(n));}',rust:'use std::io;\nfn f(n:u64)->u64{if n<=1{1}else{n*f(n-1)}}\nfn main(){let mut s=String::new();io::stdin().read_line(&mut s).unwrap();println!("{}",f(s.trim().parse().unwrap()));}',go:'package main\nimport "fmt"\nfunc f(n uint64)uint64{if n<=1{return 1};return n*f(n-1)}\nfunc main(){var n uint64;fmt.Scan(&n);fmt.Println(f(n))}',php:'<?php\n$n=intval(trim(fgets(STDIN)));\nfunction f($n){return $n<=1?1:$n*f($n-1);}\necho f($n)."\\n";',kotlin:'fun f(n:Long):Long=if(n<=1)1L else n*f(n-1)\nfun main(){println(f(readLine()!!.trim().toLong()))}',ruby:'n=gets.chomp.to_i\ndef f(n) n<=1?1:n*f(n-1) end\nputs f(n)',csharp:'using System;\nclass Main{static long F(int n){return n<=1?1:n*F(n-1);}\nstatic void Main(){Console.WriteLine(F(int.Parse(Console.ReadLine())));}}',swift:'func f(_ n:Int)->Int{return n<=1?1:n*f(n-1)}\nprint(f(Int(readLine()!)!))',dart:'import "dart:io";\nint f(int n)=>n<=1?1:n*f(n-1);\nvoid main(){print(f(int.parse(stdin.readLineSync()!)));}',lua:'local function f(n) return n<=1 and 1 or n*f(n-1) end\nprint(f(tonumber(io.read())))'}},
+  palindrome:{title:'Palindrome Check',desc:'Read a string. Print "YES" if palindrome, "NO" otherwise.',diff:'Easy',topic:'Strings',points:20,stdin:'racecar',expected:'YES',
+    tc:[{n:'TC1',i:'racecar',e:'YES'},{n:'TC2',i:'hello',e:'NO'},{n:'TC3',i:'A',e:'YES'},{n:'TC4',i:'Racecar',e:'NO'}],hints:['Reverse and compare.','Case-sensitive.'],
+    code:{python:'s=input()\nprint("YES" if s==s[::-1] else "NO")',javascript:'const s=require("fs").readFileSync("/dev/stdin","utf8").trim();\nconsole.log(s===s.split("").reverse().join("")?"YES":"NO");',typescript:'const s:string=require("fs").readFileSync("/dev/stdin","utf8").trim();\nconsole.log(s===s.split("").reverse().join("")?"YES":"NO");',cpp:'#include<iostream>\n#include<algorithm>\nusing namespace std;\nint main(){string s;cin>>s;string r=s;reverse(r.begin(),r.end());cout<<(s==r?"YES":"NO")<<endl;}',java:'import java.util.Scanner;\npublic class Main{public static void main(String[] a){String s=new Scanner(System.in).next();System.out.println(s.equals(new StringBuilder(s).reverse().toString())?"YES":"NO");}}',c:'#include<stdio.h>\n#include<string.h>\nint main(){char s[1024];scanf("%s",s);int n=strlen(s),ok=1;for(int i=0;i<n/2;i++)if(s[i]!=s[n-1-i])ok=0;printf("%s\\n",ok?"YES":"NO");}',rust:'use std::io;\nfn main(){let mut s=String::new();io::stdin().read_line(&mut s).unwrap();let s=s.trim();let r:String=s.chars().rev().collect();println!("{}",if s==r{"YES"}else{"NO"});}',go:'package main\nimport("fmt";"bufio";"os";"strings")\nfunc main(){r:=bufio.NewReader(os.Stdin);s,_:=r.ReadString(\'\\n\');s=strings.TrimSpace(s);rev:="";for _,c:=range s{rev=string(c)+rev};if s==rev{fmt.Println("YES")}else{fmt.Println("NO")}}',php:'<?php\n$s=trim(fgets(STDIN));\necho($s===strrev($s)?"YES":"NO")."\\n";',kotlin:'fun main(){val s=readLine()!!.trim();println(if(s==s.reversed())"YES" else "NO")}',ruby:'s=gets.chomp\nputs s==s.reverse ? "YES" : "NO"',csharp:'using System;\nusing System.Linq;\nclass Main{static void Main(){var s=Console.ReadLine();Console.WriteLine(s==new string(s.Reverse().ToArray())?"YES":"NO");}}',swift:'let s=readLine()!;print(s==String(s.reversed())?"YES":"NO")',dart:'import "dart:io";\nvoid main(){var s=stdin.readLineSync()!;print(s==s.split("").reversed.join("")?"YES":"NO");}',lua:'local s=io.read():gsub("%s","");local r=s:reverse();print(s==r and "YES" or "NO")'}},
+  fibonacci:{title:'Fibonacci Series',desc:'Read N. Print first N Fibonacci numbers separated by spaces.',diff:'Medium',topic:'Dynamic Programming',points:30,stdin:'8',expected:'0 1 1 2 3 5 8 13',
+    tc:[{n:'TC1',i:'8',e:'0 1 1 2 3 5 8 13'},{n:'TC2',i:'1',e:'0'},{n:'TC3',i:'12',e:'0 1 1 2 3 5 8 13 21 34 55 89'}],hints:['Start: a=0, b=1','Each step: append a, then a,b=b,a+b'],
+    code:{python:'n=int(input())\na,b=0,1;r=[]\nfor _ in range(n):r.append(a);a,b=b,a+b\nprint(" ".join(map(str,r)))',javascript:'const n=+require("fs").readFileSync("/dev/stdin","utf8").trim();\nlet a=0,b=1,r=[];\nfor(let i=0;i<n;i++){r.push(a);[a,b]=[b,a+b];}\nconsole.log(r.join(" "));',typescript:'const n:number=+require("fs").readFileSync("/dev/stdin","utf8").trim();\nlet a=0,b=1;const r:number[]=[];\nfor(let i=0;i<n;i++){r.push(a);[a,b]=[b,a+b];}\nconsole.log(r.join(" "));',cpp:'#include<iostream>\nusing namespace std;\nint main(){int n;cin>>n;long long a=0,b=1;for(int i=0;i<n;i++){if(i)cout<<" ";cout<<a;long long c=a+b;a=b;b=c;}cout<<endl;}',java:'import java.util.Scanner;\npublic class Main{public static void main(String[] a){int n=new Scanner(System.in).nextInt();long x=0,y=1;StringBuilder sb=new StringBuilder();for(int i=0;i<n;i++){if(i>0)sb.append(" ");sb.append(x);long c=x+y;x=y;y=c;}System.out.println(sb);}}',c:'#include<stdio.h>\nint main(){int n;scanf("%d",&n);long long a=0,b=1;for(int i=0;i<n;i++){if(i)printf(" ");printf("%lld",a);long long c=a+b;a=b;b=c;}printf("\\n");}',rust:'use std::io;\nfn main(){let mut s=String::new();io::stdin().read_line(&mut s).unwrap();let n:usize=s.trim().parse().unwrap();let(mut a,mut b)=(0u64,1u64);let r:Vec<String>=(0..n).map(|_|{let v=a;let c=a+b;a=b;b=c;v.to_string()}).collect();println!("{}",r.join(" "));}',go:'package main\nimport("fmt";"strings";"strconv")\nfunc main(){var n int;fmt.Scan(&n);a,b:=0,1;r:=make([]string,n);for i:=0;i<n;i++{r[i]=strconv.Itoa(a);a,b=b,a+b};fmt.Println(strings.Join(r," "))}',php:'<?php\n$n=intval(trim(fgets(STDIN)));\n$a=0;$b=1;$r=[];\nfor($i=0;$i<$n;$i++){$r[]=$a;[$a,$b]=[$b,$a+$b];}\necho implode(" ",$r)."\\n";',kotlin:'fun main(){val n=readLine()!!.trim().toInt();var a=0L;var b=1L;val r=mutableListOf<Long>();repeat(n){r.add(a);val c=a+b;a=b;b=c};println(r.joinToString(" "))}',ruby:'n=gets.chomp.to_i;a,b=0,1;r=[]\nn.times{r<<a;a,b=b,a+b}\nputs r.join(" ")',csharp:'using System;\nusing System.Collections.Generic;\nclass Main{static void Main(){int n=int.Parse(Console.ReadLine());long a=0,b=1;var r=new List<long>();for(int i=0;i<n;i++){r.Add(a);var c=a+b;a=b;b=c;}Console.WriteLine(string.Join(" ",r));}}',swift:'let n=Int(readLine()!)!;var a=0,b=1;var r=[Int]()\nfor _ in 0..<n{r.append(a);let c=a+b;a=b;b=c}\nprint(r.map{String($0)}.joined(separator:" "))',dart:'import "dart:io";\nvoid main(){int n=int.parse(stdin.readLineSync()!);int a=0,b=1;List<int>r=[];for(int i=0;i<n;i++){r.add(a);int c=a+b;a=b;b=c;}print(r.join(" "));}',lua:'local n=tonumber(io.read());local a,b=0,1;local r={}\nfor i=1,n do r[i]=a;a,b=b,a+b end\nprint(table.concat(r," "))'}},
+  primes:{title:'Prime Numbers',desc:'Read N. Print all primes from 2 to N, each on its own line.',diff:'Medium',topic:'Sieve / Math',points:35,stdin:'20',expected:'2\n3\n5\n7\n11\n13\n17\n19',
+    tc:[{n:'TC1',i:'20',e:'2\n3\n5\n7\n11\n13\n17\n19'},{n:'TC2',i:'10',e:'2\n3\n5\n7'},{n:'TC3',i:'2',e:'2'}],hints:['Check divisors up to √n.','Sieve of Eratosthenes for large N.'],
+    code:{python:'n=int(input())\nfor x in range(2,n+1):\n    if all(x%d!=0 for d in range(2,int(x**.5)+1)):\n        print(x)',javascript:'const n=+require("fs").readFileSync("/dev/stdin","utf8").trim();\nconst p=n=>{if(n<2)return false;for(let i=2;i*i<=n;i++)if(n%i===0)return false;return true;};\nfor(let i=2;i<=n;i++)if(p(i))console.log(i);',typescript:'const n:number=+require("fs").readFileSync("/dev/stdin","utf8").trim();\nconst p=(n:number):boolean=>{if(n<2)return false;for(let i=2;i*i<=n;i++)if(n%i===0)return false;return true;};\nfor(let i=2;i<=n;i++)if(p(i))console.log(i);',cpp:'#include<iostream>\n#include<cmath>\nusing namespace std;\nbool p(int n){if(n<2)return false;for(int i=2;i*i<=n;i++)if(n%i==0)return false;return true;}\nint main(){int n;cin>>n;for(int i=2;i<=n;i++)if(p(i))cout<<i<<"\\n";}',java:'import java.util.Scanner;\npublic class Main{static boolean p(int n){if(n<2)return false;for(int i=2;i*i<=n;i++)if(n%i==0)return false;return true;}\npublic static void main(String[] a){int n=new Scanner(System.in).nextInt();for(int i=2;i<=n;i++)if(p(i))System.out.println(i);}}',c:'#include<stdio.h>\nint p(int n){if(n<2)return 0;for(int i=2;i*(long)i<=n;i++)if(n%i==0)return 0;return 1;}\nint main(){int n;scanf("%d",&n);for(int i=2;i<=n;i++)if(p(i))printf("%d\\n",i);}',rust:'use std::io;\nfn is_prime(n:u64)->bool{if n<2{return false;}let mut i=2u64;while i*i<=n{if n%i==0{return false;}i+=1;}true}\nfn main(){let mut s=String::new();io::stdin().read_line(&mut s).unwrap();let n:u64=s.trim().parse().unwrap();for i in 2..=n{if is_prime(i){println!("{}",i);}}}',go:'package main\nimport "fmt"\nfunc p(n int)bool{if n<2{return false};for i:=2;i*i<=n;i++{if n%i==0{return false}};return true}\nfunc main(){var n int;fmt.Scan(&n);for i:=2;i<=n;i++{if p(i){fmt.Println(i)}}}',php:'<?php\n$n=intval(trim(fgets(STDIN)));\nfunction p($n){if($n<2)return false;for($i=2;$i*$i<=$n;$i++)if($n%$i==0)return false;return true;}\nfor($i=2;$i<=$n;$i++)if(p($i))echo "$i\\n";',kotlin:'fun p(n:Int):Boolean{if(n<2)return false;var i=2;while(i*i<=n){if(n%i==0)return false;i++};return true}\nfun main(){val n=readLine()!!.trim().toInt();for(i in 2..n)if(p(i))println(i)}',ruby:'n=gets.chomp.to_i\n(2..n).each{|x|puts x if (2..Math.sqrt(x).to_i).all?{|d|x%d!=0}}',csharp:'using System;\nclass Main{static bool P(int n){if(n<2)return false;for(int i=2;i*i<=n;i++)if(n%i==0)return false;return true;}\nstatic void Main(){int n=int.Parse(Console.ReadLine());for(int i=2;i<=n;i++)if(P(i))Console.WriteLine(i);}}',swift:'func p(_ n:Int)->Bool{if n<2{return false};var i=2;while i*i<=n{if n%i==0{return false};i+=1};return true}\nlet n=Int(readLine()!)!;for i in 2...max(n,2){if i<=n&&p(i){print(i)}}',dart:'import "dart:io";\nbool p(int n){if(n<2)return false;for(int i=2;i*i<=n;i++)if(n%i==0)return false;return true;}\nvoid main(){int n=int.parse(stdin.readLineSync()!);for(int i=2;i<=n;i++)if(p(i))print(i);}',lua:'local function p(n)\n  if n<2 then return false end\n  for i=2,math.floor(math.sqrt(n)) do if n%i==0 then return false end end\n  return true\nend\nlocal n=tonumber(io.read())\nfor i=2,n do if p(i) then print(i) end end'}},
+  reversewords:{title:'Reverse Words',desc:'Read a line. Print the words in reverse order.',diff:'Medium',topic:'Strings / Arrays',points:25,stdin:'Hello World from Claude',expected:'Claude from World Hello',
+    tc:[{n:'TC1',i:'Hello World from Claude',e:'Claude from World Hello'},{n:'TC2',i:'solo',e:'solo'},{n:'TC3',i:'foo bar',e:'bar foo'}],hints:['Split → reverse → join.'],
+    code:{python:'print(" ".join(input().split()[::-1]))',javascript:'const s=require("fs").readFileSync("/dev/stdin","utf8").trim();\nconsole.log(s.split(/\\s+/).reverse().join(" "));',typescript:'const s:string=require("fs").readFileSync("/dev/stdin","utf8").trim();\nconsole.log(s.split(/\\s+/).reverse().join(" "));',cpp:'#include<iostream>\n#include<sstream>\n#include<vector>\nusing namespace std;\nint main(){string line;getline(cin,line);istringstream iss(line);vector<string>v;string w;while(iss>>w)v.push_back(w);for(int i=v.size()-1;i>=0;i--){if(i<(int)v.size()-1)cout<<" ";cout<<v[i];}cout<<endl;}',java:'import java.util.*;\npublic class Main{public static void main(String[] a){String[] w=new Scanner(System.in).nextLine().split("\\\\s+");List<String>l=Arrays.asList(w);Collections.reverse(l);System.out.println(String.join(" ",l));}}',c:'#include<stdio.h>\n#include<string.h>\nint main(){char line[2048];fgets(line,2048,stdin);char*w[500];int n=0;char*t=strtok(line," \\n\\r");while(t){w[n++]=t;t=strtok(NULL," \\n\\r");}for(int i=n-1;i>=0;i--){if(i<n-1)printf(" ");printf("%s",w[i]);}printf("\\n");}',rust:'use std::io;\nfn main(){let mut s=String::new();io::stdin().read_line(&mut s).unwrap();let mut words:Vec<&str>=s.trim().split_whitespace().collect();words.reverse();println!("{}",words.join(" "));}',go:'package main\nimport("fmt";"bufio";"os";"strings")\nfunc main(){r:=bufio.NewReader(os.Stdin);s,_:=r.ReadString(\'\\n\');words:=strings.Fields(strings.TrimSpace(s));for i,j:=0,len(words)-1;i<j;i,j=i+1,j-1{words[i],words[j]=words[j],words[i]};fmt.Println(strings.Join(words," "))}',php:'<?php\n$words=preg_split(\'/\\s+/\',trim(fgets(STDIN)));\necho implode(" ",array_reverse($words))."\\n";',kotlin:'fun main(){val words=readLine()!!.trim().split("\\s+".toRegex());println(words.reversed().joinToString(" "))}',ruby:'puts gets.split.reverse.join(" ")',csharp:'using System;\nusing System.Linq;\nclass Main{static void Main(){var w=Console.ReadLine().Split();Console.WriteLine(string.Join(" ",w.Reverse()));}}',swift:'let w=readLine()!.split(separator:" ").map(String.init)\nprint(w.reversed().joined(separator:" "))',dart:'import "dart:io";\nvoid main(){var w=stdin.readLineSync()!.trim().split(RegExp(r"\\s+"));print(w.reversed.join(" "));}',lua:'local s=io.read():match("^%s*(.-)%s*$")\nlocal t={}\nfor w in s:gmatch("%S+") do table.insert(t,1,w) end\nprint(table.concat(t," "))'}},
+  binarysearch:{title:'Binary Search',desc:'Line 1: N and T (target). Line 2: N sorted integers. Print 0-based index of T, or -1.',diff:'Hard',topic:'Binary Search',points:50,stdin:'5 7\n1 3 5 7 9',expected:'3',
+    tc:[{n:'TC1',i:'5 7\n1 3 5 7 9',e:'3'},{n:'TC2',i:'4 6\n1 3 5 9',e:'-1'},{n:'TC3',i:'3 1\n1 2 3',e:'0'}],hints:['lo=0,hi=n-1','mid=(lo+hi)//2','Compare arr[mid] with T'],
+    code:{python:'p=input().split();n,t=int(p[0]),int(p[1])\narr=list(map(int,input().split()))\nlo,hi,res=0,n-1,-1\nwhile lo<=hi:\n    m=(lo+hi)//2\n    if arr[m]==t:res=m;break\n    elif arr[m]<t:lo=m+1\n    else:hi=m-1\nprint(res)',javascript:'const lines=require("fs").readFileSync("/dev/stdin","utf8").trim().split("\\n");\nconst[n,t]=lines[0].split(" ").map(Number);\nconst arr=lines[1].split(" ").map(Number);\nlet lo=0,hi=n-1,res=-1;\nwhile(lo<=hi){const m=(lo+hi)>>1;if(arr[m]===t){res=m;break;}else if(arr[m]<t)lo=m+1;else hi=m-1;}\nconsole.log(res);',typescript:'const lines=require("fs").readFileSync("/dev/stdin","utf8").trim().split("\\n");\nconst[n,t]=lines[0].split(" ").map(Number);\nconst arr=lines[1].split(" ").map(Number);\nlet lo=0,hi=n-1,res=-1;\nwhile(lo<=hi){const m=(lo+hi)>>1;if(arr[m]===t){res=m;break;}else if(arr[m]<t)lo=m+1;else hi=m-1;}\nconsole.log(res);',cpp:'#include<iostream>\n#include<vector>\nusing namespace std;\nint main(){int n,t;cin>>n>>t;vector<int>a(n);for(auto&x:a)cin>>x;int lo=0,hi=n-1,res=-1;while(lo<=hi){int m=(lo+hi)/2;if(a[m]==t){res=m;break;}else if(a[m]<t)lo=m+1;else hi=m-1;}cout<<res<<endl;}',java:'import java.util.*;\npublic class Main{public static void main(String[] a){Scanner sc=new Scanner(System.in);int n=sc.nextInt(),t=sc.nextInt();int[]arr=new int[n];for(int i=0;i<n;i++)arr[i]=sc.nextInt();int lo=0,hi=n-1,res=-1;while(lo<=hi){int m=(lo+hi)/2;if(arr[m]==t){res=m;break;}else if(arr[m]<t)lo=m+1;else hi=m-1;}System.out.println(res);}}',c:'#include<stdio.h>\nint main(){int n,t;scanf("%d %d",&n,&t);int a[1000];for(int i=0;i<n;i++)scanf("%d",&a[i]);int lo=0,hi=n-1,res=-1;while(lo<=hi){int m=(lo+hi)/2;if(a[m]==t){res=m;break;}else if(a[m]<t)lo=m+1;else hi=m-1;}printf("%d\\n",res);}',rust:'fn main(){}',go:'package main\nimport("fmt";"bufio";"os")\nfunc main(){r:=bufio.NewReader(os.Stdin);var n,t int;fmt.Fscan(r,&n,&t);a:=make([]int,n);for i:=range a{fmt.Fscan(r,&a[i])};lo,hi,res:=0,n-1,-1;for lo<=hi{m:=(lo+hi)/2;if a[m]==t{res=m;break}else if a[m]<t{lo=m+1}else{hi=m-1}};fmt.Println(res)}',php:'<?php\n[$n,$t]=array_map("intval",explode(" ",trim(fgets(STDIN))));\n$a=array_map("intval",explode(" ",trim(fgets(STDIN))));\n$lo=0;$hi=$n-1;$res=-1;\nwhile($lo<=$hi){$m=intdiv($lo+$hi,2);if($a[$m]==$t){$res=$m;break;}elseif($a[$m]<$t)$lo=$m+1;else $hi=$m-1;}\necho "$res\\n";',kotlin:'fun main(){val(n,t)=readLine()!!.trim().split(" ").map{it.toInt()};val a=readLine()!!.trim().split(" ").map{it.toInt()};var lo=0;var hi=n-1;var res=-1;while(lo<=hi){val m=(lo+hi)/2;if(a[m]==t){res=m;break}else if(a[m]<t)lo=m+1 else hi=m-1};println(res)}',ruby:'n,t=gets.split.map(&:to_i)\narr=gets.split.map(&:to_i)\nlo,hi,res=0,n-1,-1\nwhile lo<=hi\n  m=(lo+hi)/2\n  if arr[m]==t then res=m;break\n  elsif arr[m]<t then lo=m+1\n  else hi=m-1\n  end\nend\nputs res',csharp:'using System;\nclass Main{static void Main(){var p=Console.ReadLine().Split();int n=int.Parse(p[0]),t=int.Parse(p[1]);var a=Array.ConvertAll(Console.ReadLine().Split(),int.Parse);int lo=0,hi=n-1,res=-1;while(lo<=hi){int m=(lo+hi)/2;if(a[m]==t){res=m;break;}else if(a[m]<t)lo=m+1;else hi=m-1;}Console.WriteLine(res);}}',swift:'let p=readLine()!.split(separator:" ").map{Int($0)!};let(n,t)=(p[0],p[1])\nlet a=readLine()!.split(separator:" ").map{Int($0)!}\nvar lo=0,hi=n-1,res = -1\nwhile lo<=hi{let m=(lo+hi)/2;if a[m]==t{res=m;break}else if a[m]<t{lo=m+1}else{hi=m-1}}\nprint(res)',dart:'fn main(){}',lua:'local s=io.read():gmatch("%S+")\nlocal n,t=tonumber(s()),tonumber(s())\nlocal a={};for v in io.read():gmatch("%S+") do a[#a+1]=tonumber(v) end\nlocal lo,hi,res=1,n,-1\nwhile lo<=hi do\n  local m=math.floor((lo+hi)/2)\n  if a[m]==t then res=m-1;break\n  elseif a[m]<t then lo=m+1\n  else hi=m-1\n  end\nend\nprint(res)'}},
+  freeform:{title:'Free Form',desc:'',diff:'',topic:'',points:0,stdin:'',expected:'',tc:[],hints:[],
+    code:{python:'# Write your Python code here\n\n',javascript:'// Write your JavaScript here\n\n',typescript:'// Write your TypeScript here\n\n',cpp:'#include<iostream>\nusing namespace std;\nint main(){\n    return 0;\n}',java:'public class Main{\n    public static void main(String[] args){\n    }\n}',c:'#include<stdio.h>\nint main(){\n    return 0;\n}',rust:'fn main(){\n}',go:'package main\nimport "fmt"\nfunc main(){\n    _=fmt.Println\n}',php:'<?php\n',kotlin:'fun main(){\n}',ruby:'# your code\n',csharp:'using System;\nclass Main{\n    static void Main(){\n    }\n}',swift:'// your code\n',dart:'void main(){\n}',lua:'-- your code\n'}},
+};
+
+// ══════════════════════════════════════════
+//  IoT EXERCISES
+// ══════════════════════════════════════════
+const IOT_EXERCISES = {
+  blink:{title:'Blink LED',desc:'Blink an LED connected to pin 13 every 1 second.',diff:'Practical',topic:'Digital I/O',points:20,pins:['D13 → LED+','GND → LED−'],wokwi:'https://wokwi.com/projects/new/arduino-uno',hints:['pinMode(13, OUTPUT) in setup()','digitalWrite(13, HIGH) turns LED ON','delay(1000) = 1 second'],simSerial:['[0ms] Setup complete.','[0ms] LED ON','[1000ms] LED OFF','[2000ms] LED ON','[3000ms] LED OFF'],validateRules:['has_setup','has_loop','has_pinmode_13','has_digitalwrite','has_delay_1000'],code:`void setup() {\n  pinMode(13, OUTPUT);\n  Serial.begin(9600);\n  Serial.println("Setup complete.");\n}\nvoid loop() {\n  digitalWrite(13, HIGH);\n  Serial.println("LED ON");\n  delay(1000);\n  digitalWrite(13, LOW);\n  Serial.println("LED OFF");\n  delay(1000);\n}`},
+  blink_multi:{title:'Blink Multiple LEDs',desc:'Blink 3 LEDs on pins 11, 12, 13 in sequence with 500ms delay.',diff:'Practical',topic:'Digital I/O',points:25,pins:['D11 → LED1','D12 → LED2','D13 → LED3'],hints:['Use a for loop with pin array','500ms delay between each'],simSerial:['[0ms] Setup done. 3 LEDs ready.','[0ms] LED1 ON','[500ms] LED2 ON','[1000ms] LED3 ON'],validateRules:['has_setup','has_loop','has_digitalwrite','has_delay'],code:`int pins[] = {11, 12, 13};\nvoid setup() {\n  Serial.begin(9600);\n  for (int i = 0; i < 3; i++) pinMode(pins[i], OUTPUT);\n  Serial.println("Setup done.");\n}\nvoid loop() {\n  for (int i = 0; i < 3; i++) {\n    digitalWrite(pins[i], HIGH);\n    Serial.print("LED"); Serial.print(i+1); Serial.println(" ON");\n    delay(500);\n    digitalWrite(pins[i], LOW);\n    delay(200);\n  }\n}`},
+  serial_monitor:{title:'Serial Monitor Output',desc:'Print a counter to Serial Monitor every second from 1 to 10.',diff:'Practical',topic:'Serial / I/O',points:20,pins:['USB → PC'],hints:['Serial.begin(9600) in setup()','Use a counter variable'],simSerial:['[0ms] Counter Started!','[1000ms] Count: 1','[2000ms] Count: 2','[3000ms] Count: 3'],validateRules:['has_setup','has_loop','has_serial_begin','has_serial_print'],code:`int count = 0;\nvoid setup() {\n  Serial.begin(9600);\n  Serial.println("Counter Started!");\n}\nvoid loop() {\n  count++;\n  Serial.print("Count: ");\n  Serial.println(count);\n  delay(1000);\n  if (count >= 10) { Serial.println("Restarting..."); count = 0; }\n}`},
+  temperature:{title:'Temperature Sensor (LM35)',desc:'Read analog temperature from LM35 on A0. Print °C every 2 seconds.',diff:'Practical',topic:'Analog Sensors',points:30,pins:['A0 → LM35 Vout','5V → LM35 +','GND → LM35 GND'],hints:['analogRead(A0) gives 0–1023','Temp °C = (reading * 5.0 / 1024.0 * 1000) / 10'],simSerial:['[0ms] LM35 Ready','[2000ms] Temp: 24.80 °C','[4000ms] Temp: 25.10 °C'],validateRules:['has_setup','has_loop','has_analogread','has_serial_begin','has_serial_print'],code:`void setup() { Serial.begin(9600); Serial.println("LM35 Ready"); }\nvoid loop() {\n  int raw = analogRead(A0);\n  float voltage = raw * (5.0 / 1024.0) * 1000;\n  float tempC = voltage / 10.0;\n  Serial.print("Temp: "); Serial.print(tempC, 2); Serial.println(" °C");\n  delay(2000);\n}`},
+  ldr_sensor:{title:'LDR Light Sensor',desc:'Read LDR on A1. Turn LED ON when dark.',diff:'Practical',topic:'Analog Sensors',points:30,pins:['A1 → LDR divider','D13 → LED'],hints:['High ADC value = dark','Use threshold ~700'],simSerial:['[0ms] LDR Ready','[500ms] BRIGHT','[1500ms] DARK → LED ON'],validateRules:['has_setup','has_loop','has_analogread','has_digitalwrite','has_if'],code:`const int LDR_PIN=A1,LED_PIN=13,THRESHOLD=700;\nvoid setup() { pinMode(LED_PIN,OUTPUT); Serial.begin(9600); }\nvoid loop() {\n  int val=analogRead(LDR_PIN);\n  if(val>THRESHOLD){digitalWrite(LED_PIN,HIGH);Serial.println("DARK");}\n  else{digitalWrite(LED_PIN,LOW);Serial.println("BRIGHT");}\n  delay(500);\n}`},
+  button_led:{title:'Push Button + LED',desc:'Read button on pin 7. Turn LED (pin 13) ON while pressed.',diff:'Practical',topic:'Digital I/O',points:25,pins:['D7 → Button → GND','D13 → LED'],hints:['INPUT_PULLUP — reads HIGH normally','Pressed = LOW'],simSerial:['[0ms] Ready!','[500ms] NOT pressed','[1200ms] PRESSED → LED ON'],validateRules:['has_setup','has_loop','has_digitalread','has_digitalwrite','has_if'],code:`const int BTN=7,LED=13;\nvoid setup(){pinMode(BTN,INPUT_PULLUP);pinMode(LED,OUTPUT);Serial.begin(9600);}\nvoid loop(){\n  if(digitalRead(BTN)==LOW){digitalWrite(LED,HIGH);Serial.println("PRESSED");}\n  else{digitalWrite(LED,LOW);Serial.println("NOT pressed");}\n  delay(100);\n}`},
+  servo_motor:{title:'Servo Motor Sweep',desc:'Sweep a servo from 0° to 180° and back.',diff:'Practical',topic:'Servo / Motor',points:35,pins:['D9 → Servo Signal','5V → Servo Power','GND → Servo GND'],hints:['#include <Servo.h>','myServo.attach(9)','myServo.write(angle)'],simSerial:['[0ms] Servo Ready','[15ms] Angle: 0°','[45ms] Angle: 90°','[90ms] Angle: 180°'],validateRules:['has_servo_include','has_setup','has_loop','has_servo_write','has_for_loop'],code:`#include <Servo.h>\nServo myServo;\nvoid setup(){myServo.attach(9);Serial.begin(9600);}\nvoid loop(){\n  for(int a=0;a<=180;a+=10){myServo.write(a);Serial.println(a);delay(15);}\n  for(int a=180;a>=0;a-=10){myServo.write(a);delay(15);}\n  delay(500);\n}`},
+  lcd_display:{title:'LCD Display (16×2)',desc:'Show "Hello!" on line 1 and a counter on line 2.',diff:'Practical',topic:'LCD / I2C',points:35,pins:['SDA → A4','SCL → A5','VCC → 5V','GND → GND'],hints:['#include <LiquidCrystal_I2C.h>','lcd.begin() in setup()','lcd.setCursor(col, row)'],simSerial:['[0ms] LCD Ready','[0ms] Line 1: Hello!','[1000ms] Count: 1','[2000ms] Count: 2'],validateRules:['has_lcd_include','has_setup','has_loop','has_lcd_print','has_setcursor'],code:`#include <LiquidCrystal_I2C.h>\nLiquidCrystal_I2C lcd(0x27,16,2);\nint count=0;\nvoid setup(){\n  lcd.begin();lcd.backlight();Serial.begin(9600);\n  lcd.setCursor(0,0);lcd.print("Hello!");\n  Serial.println("LCD Ready");\n}\nvoid loop(){\n  count++;\n  lcd.setCursor(0,1);lcd.print("Count:");lcd.print(count);\n  Serial.print("Count:");Serial.println(count);\n  delay(1000);\n}`},
+};
+
+const IOT_EX_ORDER=['blink','blink_multi','serial_monitor','temperature','ldr_sensor','button_led','servo_motor','lcd_display'];
+const EX_ORDER=['hello','sum','factorial','palindrome','fibonacci','primes','reversewords','binarysearch'];
+const EX_DIFF_CLASS={Easy:'t-easy',Medium:'t-med',Hard:'t-hard'};
+
+// ══════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════
+let lang='python',exercise='hello',mode='exercises',challengeMode='normal';
+let iotMode=false,iotLang='arduino',iotExercise='blink';
+let sessionRuns=0,sessionSolved=0,runTimes=[],dailyRuns=0,totalPoints=0;
+let solvedSet=new Set(),iotSolvedSet=new Set();
+let currentHintIndex=0;
+let timerInterval=null,timerRemaining=0,timerTotal=300;
+let wordWrap=false;
+const DAILY_SOFT_CAP=200;
+
+window.onload=async()=>{
+  buildExList();buildIoTExList();buildChapterList();buildSpeedList();
+  loadExercise('hello');updateUsagePill();
+  if(window.innerWidth<=880){document.getElementById('output-pane').style.display='none';}
+  await fetchRuntimes();
+};
+
+async function fetchRuntimes(){
+  const dot=document.getElementById('api-dot'),label=document.getElementById('api-label'),infoD=document.getElementById('api-info-d');
+  try{
+    const r=await fetch(API+'/api/v2/runtimes',{signal:AbortSignal.timeout(6000)});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const rts=await r.json();
+    processRuntimes(rts);
+    dot.className='dot-live';
+    const cnt=Object.values(resolvedLang).filter(x=>x.available).length;
+    label.textContent=`Online · ${cnt}/${Object.keys(LANG_DEFS).length}`;
+    label.style.color='var(--green)';
+    infoD.textContent=`${rts.length} runtimes · ${cnt} of 15 matched`;
+    showToast(`✅ Connected — ${cnt} runtimes ready`,'ok');
+  }catch(err){
+    dot.className='dot-live dot-err';
+    label.textContent='API Offline';label.style.color='var(--red)';
+    infoD.textContent='Cannot reach Piston API. Update YOUR_PISTON_API_URL in the config.';
+    Object.keys(LANG_DEFS).forEach(k=>{resolvedLang[k]={...LANG_DEFS[k],available:false};});
+    showToast('⚠️ Cannot reach Piston API — update config','err');
+  }
+  populateRuntimeModal();
+}
+
+function processRuntimes(rts){
+  const lu={};
+  for(const rt of rts){const k=rt.language.toLowerCase();if(!lu[k]||semverGt(rt.version,lu[k]))lu[k]=rt.version;if(rt.aliases)for(const a of rt.aliases){const ak=a.toLowerCase();if(!lu[ak]||semverGt(rt.version,lu[ak]))lu[ak]=rt.version;}}
+  for(const[key,def]of Object.entries(LANG_DEFS)){
+    const found=lu[def.pl.toLowerCase()];
+    resolvedLang[key]={...def,pv:found||def.pv,available:!!found};
+    const el=document.getElementById('lv-'+key);if(el)el.textContent=found?found.split('.')[0]+'.'+(found.split('.')[1]||'x'):'';
+    const btn=document.querySelector(`.lang-btn[data-lang="${key}"]`);if(btn)btn.classList.toggle('unavailable',!found);
+  }
+}
+
+function semverGt(a,b){const pa=a.split('.').map(Number),pb=b.split('.').map(Number);for(let i=0;i<3;i++)if((pa[i]||0)!==(pb[i]||0))return(pa[i]||0)>(pb[i]||0);return false;}
+
+function populateRuntimeModal(){
+  const iotRows=`
+    <div class="runtime-row" style="border-left:3px solid var(--orange)">
+      <span>🔌</span><span class="runtime-lang">Arduino C (IoT)</span>
+      <span class="runtime-ver">simulator</span>
+      <span class="runtime-status rs-sim">🔌 Simulated</span>
+    </div>
+    <div class="runtime-row" style="border-left:3px solid var(--orange)">
+      <span>🐍</span><span class="runtime-lang">MicroPython (IoT)</span>
+      <span class="runtime-ver">via python</span>
+      <span class="runtime-status rs-sim">🔌 Simulated</span>
+    </div>`;
+  document.getElementById('rt-list').innerHTML=iotRows+Object.entries(resolvedLang).map(([key,cfg])=>`
+    <div class="runtime-row">
+      <span>${LANG_DEFS[key].emoji}</span>
+      <span class="runtime-lang">${LANG_DEFS[key].name}</span>
+      <span class="runtime-ver">${cfg.pl}@${cfg.pv}</span>
+      <span class="runtime-status ${cfg.available?'rs-ok':'rs-missing'}">${cfg.available?'✓ ready':'✗ missing'}</span>
+    </div>`).join('');
+}
+
+function buildExList(){
+  document.getElementById('ex-list').innerHTML=EX_ORDER.map(k=>{
+    const ex=EXERCISES[k];
+    const dc=ex.diff==='Easy'?'diff-e':ex.diff==='Medium'?'diff-m':'diff-h';
+    return `<div class="ex-item${k==='hello'?' active':''}" onclick="loadExercise('${k}')" id="exi-${k}">
+      <div class="ex-dot ${dc}"></div>
+      <div class="ex-info"><div class="ex-name">${ex.title}</div><div class="ex-meta">${ex.diff} · ${ex.topic} · +${ex.points}pts</div></div>
+      <span class="ex-badge" id="badge-${k}">○</span>
+    </div>`;
+  }).join('');
+  updateSolvedBadge();
+}
+
+function buildIoTExList(){
+  document.getElementById('iot-ex-list').innerHTML=IOT_EX_ORDER.map(k=>{
+    const ex=IOT_EXERCISES[k];
+    return `<div class="ex-item" onclick="loadIoTExercise('${k}')" id="iot-exi-${k}">
+      <div class="ex-dot diff-iot"></div>
+      <div class="ex-info"><div class="ex-name">${ex.title}</div><div class="ex-meta">Practical · ${ex.topic} · +${ex.points}pts</div></div>
+      <span class="ex-badge" id="iot-badge-${k}">○</span>
+    </div>`;
+  }).join('');
+}
+
+function buildSpeedList(){
+  const challenges=[
+    {key:'hello',title:'Blazing Hello',desc:'Hello World in 30s',t:30},
+    {key:'sum',title:'Sum Sprint',desc:'Sum two numbers in 1min',t:60},
+    {key:'palindrome',title:'Palindrome Rush',desc:'Palindrome in 90s',t:90},
+    {key:'fibonacci',title:'Fib Frenzy',desc:'Fibonacci in 3min',t:180},
+    {key:'primes',title:'Prime Blitz',desc:'Primes in 4min',t:240},
+  ];
+  document.getElementById('speed-list').innerHTML=
+    `<div style="padding:.2rem .05rem .65rem;font-size:.72rem;color:var(--muted-l);">Timed challenges — code auto-submits when time runs out!</div>`+
+    challenges.map(sc=>`<div class="speed-item" onclick="startSpeedChallenge('${sc.key}',${sc.t})">
+      <div class="speed-item-t">${sc.title}<span style="font-family:var(--mono);color:var(--accent);font-size:.68rem">${sc.t>=60?Math.floor(sc.t/60)+'m':sc.t+'s'}</span></div>
+      <div class="speed-item-d">${sc.desc}</div></div>`).join('');
+}
+
+function setLang(btn,l){
+  if(iotMode)return;
+  lang=l;
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('filename').textContent=LANG_DEFS[l].file;
+  document.getElementById('lang-tag').textContent=LANG_DEFS[l].name;
+  document.getElementById('code').value=EXERCISES[exercise].code[l]||EXERCISES[exercise].code.python||'';
+  onCodeInput();clearOutput();
+}
+
+function setIoTLang(l){
+  iotLang=l;
+  document.querySelectorAll('#iot-section .lang-btn').forEach(b=>b.classList.remove('iot-active'));
+  event.currentTarget.classList.add('iot-active');
+  if(l==='python-iot'){
+    document.getElementById('filename').textContent='main.py';
+    document.getElementById('lang-tag').textContent='MicroPython (IoT)';
+    document.getElementById('code').value=`# MicroPython\nimport machine, time\nled = machine.Pin(13, machine.Pin.OUT)\nwhile True:\n    led.value(1)\n    print("LED ON")\n    time.sleep(1)\n    led.value(0)\n    print("LED OFF")\n    time.sleep(1)`;
+  }else{
+    document.getElementById('filename').textContent='sketch.ino';
+    document.getElementById('lang-tag').textContent='Arduino C';
+    loadIoTExercise(iotExercise);
+  }
+  onCodeInput();
+}
+
+function setMode(m){
+  mode=m;
+  document.getElementById('mode-ex').classList.toggle('active',m==='exercises');
+  document.getElementById('mode-free').classList.toggle('active',m==='freeform');
+  document.getElementById('ex-sidebar').style.display=iotMode?'none':(m==='exercises'?'':'none');
+  document.getElementById('submit-btn').style.display=m==='exercises'?'':'none';
+  document.getElementById('submit-btn-mob').style.display=m==='exercises'?'':'none';
+  document.getElementById('tc-tab').style.display=m==='exercises'&&!iotMode?'':'none';
+  document.getElementById('diff-tab').style.display=m==='exercises'&&!iotMode?'':'none';
+  document.getElementById('hint-btn').style.display=m==='exercises'?'':'none';
+  document.getElementById('hint-btn-mob').style.display=m==='exercises'?'':'none';
+  document.getElementById('ff-notice').style.display=m==='freeform'&&!iotMode?'flex':'none';
+  if(m==='freeform'){
+    document.getElementById('code').value='';document.getElementById('stdin').value='';document.getElementById('expected').value='';
+    document.getElementById('prob-title').textContent='Free Form';
+    document.getElementById('prob-desc').textContent='Write anything. Use stdin below for input.';
+    document.getElementById('diff-tag').textContent='';document.getElementById('diff-tag').className='tag';
+    document.getElementById('lang-tag').textContent=LANG_DEFS[lang]?.name||lang;
+    document.getElementById('topic-tag').textContent='';document.getElementById('pts-tag').textContent='';
+    exercise='freeform';onCodeInput();clearOutput();
+  }else if(!iotMode)loadExercise('hello');
+}
+
+function loadExercise(key){
+  if(iotMode)return;
+  if(key==='freeform'){setMode('freeform');return;}
+  exercise=key;const ex=EXERCISES[key];currentHintIndex=0;
+  document.getElementById('prob-title').textContent=ex.title;
+  document.getElementById('prob-desc').textContent=ex.desc;
+  document.getElementById('diff-tag').textContent=ex.diff;
+  document.getElementById('diff-tag').className='tag '+(EX_DIFF_CLASS[ex.diff]||'t-easy');
+  document.getElementById('lang-tag').textContent=LANG_DEFS[lang]?.name||lang;
+  document.getElementById('topic-tag').textContent=ex.topic;
+  document.getElementById('pts-tag').textContent='+'+ex.points+' pts';
+  document.getElementById('stdin').value=ex.stdin;
+  document.getElementById('expected').value=ex.expected;
+  EX_ORDER.forEach(k=>document.getElementById('exi-'+k)?.classList.toggle('active',k===key));
+  document.getElementById('code').value=ex.code[lang]||ex.code.python||'';
+  onCodeInput();clearOutput();
+}
+
+function loadIoTExercise(key){
+  iotExercise=key;const ex=IOT_EXERCISES[key];currentHintIndex=0;
+  document.getElementById('prob-title').textContent='🔌 '+ex.title;
+  document.getElementById('prob-desc').textContent=ex.desc;
+  document.getElementById('diff-tag').textContent='Practical';
+  document.getElementById('diff-tag').className='tag t-iot';
+  document.getElementById('lang-tag').textContent='Arduino C';
+  document.getElementById('topic-tag').textContent=ex.topic;
+  document.getElementById('pts-tag').textContent='+'+ex.points+' pts';
+  IOT_EX_ORDER.forEach(k=>{
+    document.getElementById('iot-exi-'+k)?.classList.remove('iot-active','active');
+    if(k===key)document.getElementById('iot-exi-'+k)?.classList.add('iot-active');
+  });
+  const pg=document.getElementById('pin-grid');
+  pg.innerHTML=ex.pins.map(p=>`<span style="font-size:.58rem;font-family:var(--mono);background:var(--surface3);border:1px solid var(--orange);border-radius:4px;padding:.12rem .38rem;color:var(--orange);">${p}</span>`).join('');
+  document.getElementById('code').value=ex.code;
+  document.getElementById('filename').textContent='sketch.ino';
+  onCodeInput();clearOutput();clearSerial();
+  showToast(`🔌 ${ex.title} loaded`,'iot');
+}
+
+function setChallenge(c){
+  challengeMode=c;
+  document.querySelectorAll('.hc-pill').forEach(p=>p.classList.remove('active'));
+  document.getElementById('pill-'+c).classList.add('active');
+  if(c==='iot'){enterIoTMode();}
+  else{
+    exitIoTMode();
+    if(c==='speed'){switchTabByName('speed');showToast('⚡ Pick a speed challenge!','info');}
+    else if(c==='daily'){if(mode==='freeform')setMode('exercises');loadExercise('binarysearch');showToast('🗓 Daily Challenge: Binary Search!','info');}
+    else{stopTimer();if(mode==='freeform')setMode('exercises');else loadExercise('hello');}
+  }
+}
+
+function enterIoTMode(){
+  iotMode=true;
+  document.getElementById('lang-section').style.display='none';
+  document.getElementById('iot-section').style.display='';
+  document.getElementById('ex-sidebar').style.display='none';
+  document.getElementById('iot-ex-sidebar').style.display='';
+  document.getElementById('iot-notice').style.display='flex';
+  document.getElementById('ff-notice').style.display='none';
+  document.getElementById('stdin-bar').style.display='none';
+  document.getElementById('serial-tab').style.display='';
+  document.getElementById('tc-tab').style.display='none';
+  document.getElementById('diff-tab').style.display='none';
+  document.getElementById('iot-pin-bar').style.display='';
+  document.getElementById('submit-btn').style.display='';
+  document.getElementById('submit-btn-mob').style.display='';
+  document.getElementById('hint-btn').style.display='';
+  document.getElementById('hint-btn-mob').style.display='';
+  document.getElementById('run-btn').classList.add('iot');
+  document.getElementById('run-btn-mob').classList.add('iot');
+  document.getElementById('submit-btn').textContent='✓ Check & Simulate';
+  document.getElementById('submit-btn-mob').textContent='✓ Check';
+  loadIoTExercise('blink');switchTabByName('serial');
+  showToast('🔌 IoT Mode — Arduino Practicals loaded!','iot');
+  if(window.innerWidth<=880)closeSidebarMobile();
+}
+
+function exitIoTMode(){
+  iotMode=false;
+  document.getElementById('lang-section').style.display='';
+  document.getElementById('iot-section').style.display='none';
+  document.getElementById('iot-ex-sidebar').style.display='none';
+  document.getElementById('ex-sidebar').style.display=mode==='exercises'?'':'none';
+  document.getElementById('iot-notice').style.display='none';
+  document.getElementById('stdin-bar').style.display='';
+  document.getElementById('serial-tab').style.display='none';
+  document.getElementById('tc-tab').style.display=mode==='exercises'?'':'none';
+  document.getElementById('diff-tab').style.display=mode==='exercises'?'':'none';
+  document.getElementById('iot-pin-bar').style.display='none';
+  document.getElementById('run-btn').classList.remove('iot');
+  document.getElementById('run-btn-mob').classList.remove('iot');
+  document.getElementById('submit-btn').textContent='✓ Submit';
+  document.getElementById('submit-btn-mob').textContent='✓';
+  document.getElementById('ff-notice').style.display='none';
+  lang='python';
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.lang-btn[data-lang="python"]').classList.add('active');
+  loadExercise('hello');switchTabByName('output');
+}
+
+function validateArduino(code){
+  const errors=[],warnings=[];const c=code.toLowerCase();
+  if(!code.includes('void setup()')&&!code.includes('void setup ()'))errors.push('❌ Missing void setup() function');
+  if(!code.includes('void loop()')&&!code.includes('void loop ()'))errors.push('❌ Missing void loop() function');
+  const opens=(code.match(/\{/g)||[]).length,closes=(code.match(/\}/g)||[]).length;
+  if(opens!==closes)errors.push(`❌ Unbalanced braces: ${opens} '{' vs ${closes} '}'`);
+  if(c.includes('digitalwrite')&&!code.includes('digitalWrite'))errors.push('❌ Wrong case: use digitalWrite');
+  if(c.includes('digitalread')&&!code.includes('digitalRead'))errors.push('❌ Wrong case: use digitalRead');
+  if(c.includes('analogread')&&!code.includes('analogRead'))errors.push('❌ Wrong case: use analogRead');
+  if(c.includes('pinmode')&&!code.includes('pinMode'))errors.push('❌ Wrong case: use pinMode');
+  if(c.includes('serial.begin')&&!code.includes('Serial.begin'))errors.push('❌ Wrong case: use Serial.begin');
+  return{errors,warnings,ok:errors.length===0};
+}
+
+function simulateSerialOutput(ex){return ex.simSerial||['[0ms] No simulation data available.'];}
+
+async function runIoT(){
+  const code=document.getElementById('code').value.trim();
+  if(!code)return;
+  setRunning(true);bumpRuns();const t0=Date.now();
+  clearSerial();switchTabByName('serial');
+  await sleep(600);
+  const{errors,warnings,ok}=validateArduino(code);
+  const ms=Date.now()-t0;runTimes.push(ms);updateAvg();
+  const ob=document.getElementById('out-body');
+  if(!ok){
+    ob.innerHTML=`<span class="o-err">── Errors ──\n\n${errors.join('\n')}</span>`;
+    setVerdict('err','Compile Error',ms,'1');switchTabByName('output');
+    showToast('❌ Errors found — fix and retry','err');
+  }else{
+    ob.innerHTML=`<span class="o-ok">✅ Sketch — Syntax OK!\n\nLines: ${code.split('\n').filter(l=>l.trim()&&!l.trim().startsWith('//')).length}\n\n✅ Ready to upload!\n📟 Simulated Serial → Serial tab\n🔗 Full sim: wokwi.com\n</span>`;
+    setVerdict('iot','✅ Valid Sketch',ms,'0');
+    const lines=simulateSerialOutput(IOT_EXERCISES[iotExercise]);
+    const soEl=document.getElementById('serial-output');
+    for(let i=0;i<lines.length;i++){await sleep(i===0?200:300);soEl.textContent+=(soEl.textContent?'\n':'')+lines[i];soEl.scrollTop=soEl.scrollHeight;}
+    showToast('✅ Valid sketch! Serial output simulated','iot');
+  }
+  setRunning(false);
+}
+
+async function submitIoT(){
+  const code=document.getElementById('code').value.trim();
+  if(!code)return;
+  setRunning(true);bumpRuns();clearSerial();switchTabByName('serial');await sleep(800);
+  const{errors,ok}=validateArduino(code);
+  const ex=IOT_EXERCISES[iotExercise];
+  const ruleResults=[];let allRulesPass=true;
+  const rules={
+    has_setup:{label:'void setup() present',pass:code.includes('void setup()')},
+    has_loop:{label:'void loop() present',pass:code.includes('void loop()')},
+    has_pinmode_13:{label:'pinMode(13,...) used',pass:/pinMode\s*\(\s*13/.test(code)},
+    has_digitalwrite:{label:'digitalWrite() used',pass:code.includes('digitalWrite(')},
+    has_digitalread:{label:'digitalRead() used',pass:code.includes('digitalRead(')},
+    has_analogread:{label:'analogRead() used',pass:code.includes('analogRead(')},
+    has_delay:{label:'delay() used',pass:code.includes('delay(')},
+    has_delay_1000:{label:'delay(1000) present',pass:/delay\s*\(\s*1000\s*\)/.test(code)},
+    has_serial_begin:{label:'Serial.begin() used',pass:code.includes('Serial.begin(')},
+    has_serial_print:{label:'Serial.print used',pass:code.includes('Serial.print')},
+    has_servo_include:{label:'#include <Servo.h>',pass:code.includes('Servo.h')},
+    has_servo_write:{label:'servo.write() used',pass:/\w+\.write\s*\(/.test(code)},
+    has_lcd_include:{label:'LCD library included',pass:code.includes('LiquidCrystal')},
+    has_lcd_print:{label:'lcd.print() used',pass:/lcd\.print\s*\(/.test(code)},
+    has_setcursor:{label:'lcd.setCursor() used',pass:/lcd\.setCursor\s*\(/.test(code)},
+    has_for_loop:{label:'for loop used',pass:/for\s*\(/.test(code)},
+    has_if:{label:'if condition used',pass:/if\s*\(/.test(code)},
+  };
+  (ex.validateRules||[]).forEach(r=>{const rule=rules[r]||{label:r,pass:false};if(!rule.pass)allRulesPass=false;ruleResults.push(rule);});
+  const wrap=document.getElementById('tc-wrap');wrap.innerHTML='';
+  let passed=0;
+  const syntaxPass=ok&&errors.length===0;
+  if(syntaxPass)passed++;
+  const sc=document.createElement('div');
+  sc.className='tc-card '+(syntaxPass?'pass':'fail')+' open';
+  sc.innerHTML=`<div class="tc-head" onclick="this.parentElement.classList.toggle('open')">
+    <span>${syntaxPass?'✅':'❌'}</span><span class="tc-name">Syntax Check</span>
+    <span class="tc-t" style="color:var(--${syntaxPass?'green':'red'})">${syntaxPass?'PASS':'FAIL'}</span>
+  </div>
+  <div class="tc-body" style="display:grid;">
+    <div class="tc-col"><div class="tc-col-l">Result</div><div class="tc-col-v ${syntaxPass?'':'bad'}">${syntaxPass?'No errors':errors.join('\n')}</div></div>
+  </div>`;
+  wrap.appendChild(sc);
+  ruleResults.forEach(r=>{
+    if(r.pass)passed++;
+    const c=document.createElement('div');c.className='tc-card '+(r.pass?'pass':'fail');
+    c.innerHTML=`<div class="tc-head" onclick="this.parentElement.classList.toggle('open')"><span>${r.pass?'✅':'❌'}</span><span class="tc-name">${r.label}</span><span class="tc-t" style="color:var(--${r.pass?'green':'red'})">${r.pass?'PASS':'FAIL'}</span></div>`;
+    wrap.appendChild(c);
+  });
+  const lines=simulateSerialOutput(IOT_EXERCISES[iotExercise]);
+  const soEl=document.getElementById('serial-output');
+  for(let i=0;i<lines.length;i++){await sleep(i===0?200:250);soEl.textContent+=(soEl.textContent?'\n':'')+lines[i];soEl.scrollTop=soEl.scrollHeight;}
+  const allPass=syntaxPass&&allRulesPass;
+  const tot=1+ruleResults.length;
+  setVerdict(allPass?'pass':'fail',`${passed}/${tot} Checks Passed`,'—','—');
+  if(allPass){markIoTSolved(iotExercise);switchTabByName('serial');fireConfetti();}
+  else{switchTabByName('testcases');showToast(`${tot-passed} check(s) failed`,'err');}
+  setRunning(false);
+}
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+function clearSerial(){document.getElementById('serial-output').textContent='';}
+
+async function runCode(){
+  if(iotMode){runIoT();return;}
+  const code=document.getElementById('code').value.trim();
+  if(!code)return;
+  setRunning(true);bumpRuns();const t0=Date.now();
+  try{
+    const data=await piston(code,lang,document.getElementById('stdin').value);
+    const ms=Date.now()-t0;runTimes.push(ms);updateAvg();
+    const stdout=(data.run?.stdout||'').trimEnd();
+    const stderr=data.run?.stderr||'';
+    const exit=data.run?.code??'?';
+    const cerr=data.compile?.stderr||'';
+    const ob=document.getElementById('out-body');
+    if(cerr){
+      ob.innerHTML=`<span class="o-err">── Compile Error ──\n${esc(cerr)}</span>`;
+      setVerdict('err','Compile Error',ms,exit);
+    }else if(exit!==0&&stderr){
+      ob.innerHTML=`<span class="o-err">${esc((stdout?stdout+'\n':'')+'\n── stderr ──\n'+stderr)}</span>`;
+      setVerdict('err','Runtime Error',ms,exit);
+    }else{
+      const exp=document.getElementById('expected').value.trim();
+      const pass=!!(exp&&stdout===exp);
+      ob.innerHTML=`<span class="${stdout?'o-ok':'o-idle'}">${esc(stdout)||'(no output)'}</span>`;
+      if(exp){renderDiff(exp,stdout);setVerdict(pass?'pass':'fail',pass?'Correct ✓':'Wrong Answer',ms,exit);if(pass&&exercise!=='freeform')markSolved(exercise);}
+      else setVerdict('idle','Success',ms,exit);
+    }
+  }catch(err){
+    document.getElementById('out-body').innerHTML=`<span class="o-err">Network Error: ${esc(err.message)}</span>`;
+    setVerdict('err','Error','—','—');
+  }
+  setRunning(false);
+}
+
+async function submitCode(){
+  if(iotMode){submitIoT();return;}
+  const code=document.getElementById('code').value.trim();
+  if(!code||exercise==='freeform')return;
+  setRunning(true);bumpRuns();
+  switchTabByName('testcases');
+  if(window.innerWidth<=880){document.getElementById('output-pane').style.display='';document.getElementById('editor-pane').style.display='none';}
+  const tcs=EXERCISES[exercise].tc;
+  const wrap=document.getElementById('tc-wrap');
+  wrap.innerHTML=tcs.map((tc,i)=>`<div class="tc-card" id="tc${i}"><div class="tc-head"><span>⏳</span><span class="tc-name">${tc.n}</span><span class="tc-t shimmer">Running…</span></div></div>`).join('');
+  let allPass=true;
+  for(let i=0;i<tcs.length;i++){
+    const tc=tcs[i],t0=Date.now();
+    try{
+      const data=await piston(code,lang,tc.i);
+      const ms=Date.now()-t0;
+      const out=(data.run?.stdout||'').trimEnd();
+      const cerr=data.compile?.stderr||'';
+      const pass=!cerr&&out===tc.e.trim();
+      if(!pass)allPass=false;
+      const el=document.getElementById('tc'+i);
+      el.className='tc-card '+(pass?'pass':'fail')+' open';
+      el.innerHTML=`<div class="tc-head" onclick="this.parentElement.classList.toggle('open')"><span>${pass?'✅':'❌'}</span><span class="tc-name">${tc.n}</span><span class="tc-t">${(ms/1000).toFixed(2)}s</span></div>
+        <div class="tc-body"><div class="tc-col"><div class="tc-col-l">Input</div><div class="tc-col-v">${esc(tc.i||'(none)')}</div></div>
+        <div class="tc-col"><div class="tc-col-l">Expected</div><div class="tc-col-v">${esc(tc.e)}</div></div>
+        <div class="tc-col"><div class="tc-col-l">Output</div><div class="tc-col-v${pass?'':' bad'}">${esc(cerr?'[Compile Error]':out||'(empty)')}</div></div>
+        <div class="tc-col"><div class="tc-col-l">Result</div><div class="tc-col-v" style="color:var(--${pass?'green':'red'})">${pass?'PASS ✓':'FAIL ✗'}</div></div></div>`;
+    }catch(err){
+      allPass=false;
+      document.getElementById('tc'+i).innerHTML=`<div class="tc-head"><span>⚠️</span><span class="tc-name">${tcs[i].n}</span><span class="tc-t" style="color:var(--red)">Network error</span></div>`;
+    }
+  }
+  const passed=document.querySelectorAll('.tc-card.pass').length;
+  setVerdict(allPass?'pass':'fail',`${passed}/${tcs.length} Passed`,'—','—');
+  if(allPass)markSolved(exercise);
+  else showToast(`${tcs.length-passed} test(s) failed`,'err');
+  setRunning(false);
+}
+
+async function piston(code,l,stdin){
+  const cfg=resolvedLang[l]||LANG_DEFS[l];
+  const r=await fetch(API+'/api/v2/execute',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({language:cfg.pl,version:cfg.pv,files:[{name:cfg.file,content:code}],stdin:stdin||'',run_timeout:3000,compile_timeout:9000}),signal:AbortSignal.timeout(20000)});
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||'API error '+r.status);}
+  return r.json();
+}
+
+function markSolved(key){
+  if(solvedSet.has(key)){showToast('Already solved! 🎉','ok');return;}
+  solvedSet.add(key);sessionSolved++;
+  const pts=EXERCISES[key].points||0;totalPoints+=pts;
+  document.getElementById('s-solved').textContent=sessionSolved;
+  document.getElementById('s-pts').textContent=totalPoints;
+  document.getElementById('badge-'+key).textContent='✅';
+  document.getElementById('exi-'+key)?.classList.add('solved');
+  updateSolvedBadge();
+  document.getElementById('pts-earned').style.display='';
+  document.getElementById('v-pts').textContent=pts;
+  showToast(`🎉 Solved! +${pts} pts`,'ok');
+  fireConfetti();
+}
+
+function markIoTSolved(key){
+  if(iotSolvedSet.has(key)){showToast('Already completed! 🔌','iot');return;}
+  iotSolvedSet.add(key);sessionSolved++;
+  const pts=IOT_EXERCISES[key].points||0;totalPoints+=pts;
+  document.getElementById('s-solved').textContent=sessionSolved;
+  document.getElementById('s-pts').textContent=totalPoints;
+  document.getElementById('iot-badge-'+key).textContent='✅';
+  document.getElementById('iot-exi-'+key)?.classList.add('solved');
+  document.getElementById('iot-solved-badge').textContent=iotSolvedSet.size+'/'+IOT_EX_ORDER.length;
+  document.getElementById('pts-earned').style.display='';
+  document.getElementById('v-pts').textContent=pts;
+  showToast(`🔌 Practical Complete! +${pts} pts`,'iot');
+}
+
+function updateSolvedBadge(){document.getElementById('solved-badge').textContent=solvedSet.size+'/'+EX_ORDER.length;}
+function bumpRuns(){sessionRuns++;dailyRuns++;document.getElementById('s-runs').textContent=sessionRuns;updateUsagePill();}
+function updateUsagePill(){
+  const pct=Math.min((dailyRuns/DAILY_SOFT_CAP)*100,100);
+  document.getElementById('usage-bar').style.width=pct+'%';
+  document.getElementById('usage-bar').style.background=pct<60?'var(--green)':pct<85?'var(--accent)':'var(--red)';
+  document.getElementById('usage-label').textContent=dailyRuns?`${dailyRuns} run${dailyRuns>1?'s':''} today`:'0 runs today';
+}
+function updateAvg(){if(!runTimes.length)return;document.getElementById('s-avg').textContent=Math.round(runTimes.reduce((a,b)=>a+b,0)/runTimes.length)+'ms';}
+
+function setRunning(v){
+  ['run-btn','submit-btn','run-btn-mob','submit-btn-mob'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=v;});
+  document.getElementById('run-icon').textContent=v?'⟳':'▶';
+  document.getElementById('run-lbl').textContent=v?'Running…':'Run';
+  const ri=document.getElementById('run-icon-mob');if(ri)ri.textContent=v?'⟳':'▶';
+  if(v)setVerdict('run','Running…','—','—');
+  if(v&&window.innerWidth<=880)mobSwitchPane('output');
+}
+
+function setVerdict(type,label,ms,exit){
+  const b=document.getElementById('vbadge');b.textContent=label;b.className='vbadge vb-'+type;
+  document.getElementById('v-t').textContent=typeof ms==='number'?ms+'ms':ms;
+  document.getElementById('v-e').textContent=exit;
+  if(type!=='pass'&&type!=='iot')document.getElementById('pts-earned').style.display='none';
+}
+
+function clearOutput(){
+  document.getElementById('out-body').innerHTML='<span class="o-idle">▸ Press Ctrl+Enter or click Run to execute…</span>';
+  document.getElementById('diff-body').innerHTML='<div style="padding:.82rem;color:var(--muted-l);font-size:.73rem;font-style:italic">Run code to see diff…</div>';
+  setVerdict('idle','Idle','—','—');
+  document.getElementById('tc-wrap').innerHTML='<div style="padding:.6rem;color:var(--muted-l);font-size:.73rem;font-style:italic">Submit to see test cases…</div>';
+  switchTabByName('output');
+}
+
+function onCodeInput(){
+  syncLnums();
+  const code=document.getElementById('code').value;
+  document.getElementById('char-count').textContent=code.split('\n').length+'L · '+code.length+'C';
+}
+function syncLnums(){
+  const n=document.getElementById('code').value.split('\n').length;
+  document.getElementById('lnums').innerHTML=Array.from({length:n},(_,i)=>i+1).join('<br>');
+}
+function onKeyDown(e){
+  if(e.key==='Tab'){e.preventDefault();const t=e.target,s=t.selectionStart;t.value=t.value.substring(0,s)+'    '+t.value.substring(t.selectionEnd);t.selectionStart=t.selectionEnd=s+4;syncLnums();return;}
+  const pairs={'(':')','{':'}','[':']'};
+  if(pairs[e.key]&&!e.ctrlKey&&!e.metaKey){const t=e.target,s=t.selectionStart,sel=t.value.substring(s,t.selectionEnd);if(sel.length>0){e.preventDefault();const rep=e.key+sel+pairs[e.key];t.value=t.value.substring(0,s)+rep+t.value.substring(t.selectionEnd);t.selectionStart=s;t.selectionEnd=s+rep.length;syncLnums();}}
+}
+function resetCode(){
+  if(iotMode){loadIoTExercise(iotExercise);showToast('Sketch reset.','info');return;}
+  document.getElementById('code').value=EXERCISES[exercise].code[lang]||EXERCISES[exercise].code.python||'';
+  document.getElementById('stdin').value=EXERCISES[exercise].stdin||'';
+  onCodeInput();clearOutput();showToast('Code reset.','info');
+}
+function changeFontSize(d){const ta=document.getElementById('code'),ln=document.getElementById('lnums'),cur=parseFloat(ta.style.fontSize)||13,next=Math.max(10,Math.min(20,cur+d));ta.style.fontSize=next+'px';ln.style.fontSize=(next-1)+'px';}
+function toggleWrap(){wordWrap=!wordWrap;const ta=document.getElementById('code');ta.style.whiteSpace=wordWrap?'pre-wrap':'pre';ta.style.overflowWrap=wordWrap?'break-word':'normal';document.getElementById('wrap-btn').style.color=wordWrap?'var(--accent)':'';showToast('Word wrap '+(wordWrap?'ON':'OFF'),'info');}
+function copyCode(){navigator.clipboard.writeText(document.getElementById('code').value).then(()=>showToast('✅ Copied!','ok')).catch(()=>showToast('Copy failed','err'));}
+
+function openHint(){
+  const hints=iotMode?IOT_EXERCISES[iotExercise]?.hints:EXERCISES[exercise]?.hints;
+  if(!hints?.length){showToast('No hints available.','info');return;}
+  currentHintIndex=0;renderHint();openModal('hint-modal');
+}
+function renderHint(){
+  const hints=iotMode?IOT_EXERCISES[iotExercise].hints:EXERCISES[exercise].hints;
+  document.getElementById('hint-content').innerHTML=hints.slice(0,currentHintIndex+1).map((h,i)=>`<div class="hint-step"><span class="hint-num">${i+1}.</span><span>${h}</span></div>`).join('');
+  document.getElementById('hint-next-btn').style.display=currentHintIndex<hints.length-1?'':'none';
+}
+function nextHint(){const hints=iotMode?IOT_EXERCISES[iotExercise].hints:EXERCISES[exercise].hints;if(currentHintIndex<hints.length-1){currentHintIndex++;renderHint();}}
+
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function switchTab(name,el){document.querySelectorAll('.out-tabs .otab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tab-panel').forEach(t=>t.classList.remove('active'));el.classList.add('active');document.getElementById('tab-'+name).classList.add('active');}
+function switchTabByName(name){const map=['output','testcases','diff','serial','speed'];const tabs=document.querySelectorAll('#out-tabs-desktop .otab');const panels=document.querySelectorAll('.tab-panel');tabs.forEach(t=>t.classList.remove('active'));panels.forEach(p=>p.classList.remove('active'));const idx=map.indexOf(name);if(idx>=0){tabs[idx]?.classList.add('active');document.getElementById('tab-'+name)?.classList.add('active');}}
+function startTimer(s){stopTimer();timerRemaining=timerTotal=s;document.getElementById('timer-bar').classList.add('on');updateTimerUI();timerInterval=setInterval(()=>{timerRemaining=Math.max(0,timerRemaining-1);updateTimerUI();if(timerRemaining===0){clearInterval(timerInterval);timerInterval=null;document.getElementById('timer-bar').classList.remove('on');showToast('⏰ Time up!','err');if(mode==='exercises')submitCode();}},1000);}
+function stopTimer(){if(timerInterval){clearInterval(timerInterval);timerInterval=null;}document.getElementById('timer-bar').classList.remove('on');}
+function updateTimerUI(){const m=Math.floor(timerRemaining/60),s=timerRemaining%60,pct=(timerRemaining/timerTotal)*100;const clock=document.getElementById('timer-clock');clock.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');clock.className='timer-clock '+(pct>50?'ok':pct>20?'warn':'danger');const fill=document.getElementById('timer-fill');fill.style.width=pct+'%';fill.style.background=pct>50?'var(--accent)':pct>20?'var(--accent)':'var(--red)';}
+function startSpeedChallenge(key,t){loadExercise(key);if(mode==='freeform')setMode('exercises');switchTabByName('output');startTimer(t);showToast('⚡ '+EXERCISES[key].title,'info');}
+
+function renderDiff(expected,actual){
+  const el=document.getElementById('diff-body');
+  if(!expected){el.innerHTML='<div style="padding:.82rem;color:var(--muted-l);font-size:.73rem">No expected output set.</div>';return;}
+  const el_=expected.split('\n'),al=actual.split('\n'),max=Math.max(el_.length,al.length);
+  let html='<div class="diff-grid"><div class="diff-col-h" style="color:var(--green)">✓ Expected</div><div class="diff-col-h" style="color:var(--red)">✗ Your Output</div>';
+  for(let i=0;i<max;i++){const e=el_[i]??'',a=al[i]??'',m=e===a;html+=`<div class="diff-line ${m?'diff-match':'diff-exp'}">${esc(e||'↵')}</div><div class="diff-line ${m?'diff-match':'diff-got'}">${esc(a||'↵')}</div>`;}
+  el.innerHTML=html+'</div>';
+}
+
+function showToast(msg,type='info'){
+  const t=document.getElementById('toast');t.textContent=msg;t.className='toast toast-'+type;void t.offsetWidth;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);
+}
+function fireConfetti(){
+  const wrap=document.getElementById('confetti-wrap');
+  const colors=['#f0b429','#fac84a','#4ade80','#60a5fa','#c084fc','#fb923c'];
+  for(let i=0;i<70;i++){const p=document.createElement('div');p.className='cp';p.style.cssText=`left:${Math.random()*100}vw;background:${colors[i%colors.length]};animation-delay:${Math.random()*.9}s;animation-duration:${1.6+Math.random()*.8}s;width:${6+Math.random()*6}px;height:${6+Math.random()*6}px;border-radius:${Math.random()>.5?'50%':'2px'}`;wrap.appendChild(p);setTimeout(()=>p.remove(),3000);}
+}
+
+function toggleTheme(){document.body.classList.toggle('light');}
+function toggleSidebar(){
+  const sb=document.getElementById('sidebar'),overlay=document.getElementById('sidebar-overlay');
+  if(window.innerWidth<=880){const op=!sb.classList.contains('open');sb.classList.toggle('open',op);overlay.classList.toggle('open',op);}
+  else sb.classList.toggle('collapsed');
+}
+function closeSidebarMobile(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('open');}
+
+let _mobPane='editor';
+function mobSwitchPane(pane){
+  _mobPane=pane;
+  const ep=document.getElementById('editor-pane'),op=document.getElementById('output-pane');
+  const eb=document.getElementById('pane-editor-btn'),ob=document.getElementById('pane-output-btn');
+  if(!ep||!op)return;
+  if(window.innerWidth<=880){ep.style.display=pane==='editor'?'':'none';op.style.display=pane==='output'?'':'none';}
+  if(eb)eb.classList.toggle('active',pane==='editor');
+  if(ob)ob.classList.toggle('active',pane==='output');
+}
+window.addEventListener('resize',()=>{
+  const ep=document.getElementById('editor-pane'),op=document.getElementById('output-pane');
+  if(!ep||!op)return;
+  if(window.innerWidth>880){ep.style.display='';op.style.display='';document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('open');}
+  else{ep.style.display=_mobPane==='editor'?'':'none';op.style.display=_mobPane==='output'?'':'none';}
+});
+window.addEventListener('load',()=>{if(window.innerWidth<=880)mobSwitchPane('editor');});
+
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();runCode();}
+  if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key==='Enter'){e.preventDefault();submitCode();}
+  if(e.key==='Escape'){closeModal('hint-modal');closeModal('rt-modal');}
+});
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>
