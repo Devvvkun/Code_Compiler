@@ -26,10 +26,7 @@
 ## 🖥️ Preview
 
 ### Practice Interface
-![Preview](https://via.placeholder.com/1200x600?text=Code+Compiler+UI)
-
-### Typing + Stats Panel
-![Preview](https://via.placeholder.com/400x600?text=Typing+Stats+UI)
+https://devvvkun.github.io/Code_Compiler/
 
 ---
 
